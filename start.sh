@@ -24,4 +24,4 @@ export REDBEE_EXPOSURE_BASE_URL=https://exposure.api.redbee.live
 
 # Lancer le serveur MCP
 echo "Lancement du MCP..."
-venv/bin/python src/redbee_mcp/server.py
+python -m redbee_mcp.server
