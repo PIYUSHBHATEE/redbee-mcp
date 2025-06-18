@@ -8,7 +8,10 @@ __version__ = "0.1.0"
 __author__ = "RedBee MCP Team"
 __email__ = "mcp@redbee.com"
 
+# Import du serveur principal (HTTP pour AWS)
 from .server import app, start_server
+
+# Import du client
 from .client import RedBeeClient
 
 __all__ = ["app", "start_server", "RedBeeClient"] 

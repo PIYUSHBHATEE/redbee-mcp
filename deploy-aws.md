@@ -48,8 +48,8 @@ sudo apt install python3 python3-pip python3-venv git -y  # Ubuntu
 git clone https://github.com/votre-username/redbee-MCP.git
 cd redbee-MCP
 
-# Rendre les scripts exécutables
-chmod +x start.sh start-aws.sh
+# Rendre le script exécutable
+chmod +x start-aws.sh
 
 # Lancer l'installation et le serveur
 ./start-aws.sh
