@@ -61,10 +61,20 @@ echo "  Host: $HOST"
 echo "  Port: $PORT"
 
 # Vérifier si le port est libre
-if netstat -tuln | grep -q ":$PORT "; then
-    echo "Attention: Le port $PORT est déjà utilisé"
-    echo "Processus utilisant le port:"
-    netstat -tulnp | grep ":$PORT "
+if command -v netstat &> /dev/null; then
+    if netstat -tuln | grep -q ":$PORT "; then
+        echo "Attention: Le port $PORT est déjà utilisé"
+        echo "Processus utilisant le port:"
+        netstat -tulnp | grep ":$PORT "
+    fi
+elif command -v ss &> /dev/null; then
+    if ss -tuln | grep -q ":$PORT "; then
+        echo "Attention: Le port $PORT est déjà utilisé"
+        echo "Processus utilisant le port:"
+        ss -tulnp | grep ":$PORT "
+    fi
+else
+    echo "Info: netstat/ss non disponible, impossible de vérifier le port"
 fi
 
 # Arrêter le processus existant s'il existe
@@ -83,7 +93,7 @@ echo "Lancement du serveur Red Bee MCP..."
 echo "URL d'accès: http://$HOST:$PORT"
 echo "Logs disponibles dans: $LOG_DIR/"
 
-nohup python -m redbee_mcp.server \
+nohup python -m redbee_mcp \
     > "$LOG_DIR/server.log" \
     2> "$LOG_DIR/error.log" &
 

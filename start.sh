@@ -26,4 +26,4 @@ export PORT=8000
 
 # Lancer le serveur HTTP MCP
 echo "Lancement du serveur Red Bee MCP sur http://$HOST:$PORT"
-python -m redbee_mcp.server
+python -m redbee_mcp

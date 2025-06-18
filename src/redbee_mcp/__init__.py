@@ -8,7 +8,7 @@ __version__ = "0.1.0"
 __author__ = "RedBee MCP Team"
 __email__ = "mcp@redbee.com"
 
-from .server import app, main
+from .server import app, start_server
 from .client import RedBeeClient
 
-__all__ = ["app", "main", "RedBeeClient"] 
+__all__ = ["app", "start_server", "RedBeeClient"] 

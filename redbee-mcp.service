@@ -15,7 +15,7 @@ Environment=REDBEE_BUSINESS_UNIT=TV5MONDEplus
 Environment=REDBEE_EXPOSURE_BASE_URL=https://exposure.api.redbee.live
 Environment=HOST=0.0.0.0
 Environment=PORT=8000
-ExecStart=/home/ec2-user/redbee-MCP/venv/bin/python -m redbee_mcp.server
+ExecStart=/home/ec2-user/redbee-MCP/venv/bin/python -m redbee_mcp
 ExecReload=/bin/kill -HUP $MAINPID
 Restart=always
 RestartSec=10
