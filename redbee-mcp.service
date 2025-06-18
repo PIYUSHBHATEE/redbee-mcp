@@ -1,0 +1,34 @@
+[Unit]
+Description=Red Bee MCP Server
+Documentation=https://exposure.api.redbee.live/docs
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=ec2-user
+Group=ec2-user
+WorkingDirectory=/home/ec2-user/redbee-MCP
+Environment=PYTHONPATH=/home/ec2-user/redbee-MCP/src
+Environment=REDBEE_CUSTOMER=TV5MONDE
+Environment=REDBEE_BUSINESS_UNIT=TV5MONDEplus
+Environment=REDBEE_EXPOSURE_BASE_URL=https://exposure.api.redbee.live
+Environment=HOST=0.0.0.0
+Environment=PORT=8000
+ExecStart=/home/ec2-user/redbee-MCP/venv/bin/python -m redbee_mcp.server
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=redbee-mcp
+
+# Sécurité
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/home/ec2-user/redbee-MCP/logs
+
+[Install]
+WantedBy=multi-user.target 

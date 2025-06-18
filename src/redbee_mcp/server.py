@@ -9,10 +9,14 @@ import logging
 import os
 from typing import Any, Dict, List
 
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+import uvicorn
+
 from mcp.server import Server
 from mcp.server.models import InitializationOptions
 from mcp.types import CallToolRequest, CallToolResult, ListToolsRequest, Tool, TextContent, ServerCapabilities
-from mcp.server.stdio import stdio_server
 
 from .models import RedBeeConfig
 from .tools.content import CONTENT_TOOLS, search_content, get_asset_details, get_playback_info, search_assets_autocomplete, get_epg_for_channel, get_episodes_for_season, get_public_asset_details, get_assets_by_tag, list_assets
@@ -24,6 +28,16 @@ from .tools.system import SYSTEM_TOOLS, get_system_config, get_system_time, get_
 # Configuration du logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Modèles Pydantic pour l'API HTTP
+class ToolCallRequest(BaseModel):
+    name: str
+    arguments: dict = {}
+
+class ToolCallResponse(BaseModel):
+    success: bool
+    data: List[TextContent] = []
+    error: str = None
 
 # Configuration Red Bee Media à partir des variables d'environnement
 def get_config() -> RedBeeConfig:
@@ -40,11 +54,26 @@ def get_config() -> RedBeeConfig:
         timeout=int(os.getenv("REDBEE_TIMEOUT", "30"))
     )
 
-# Serveur MCP
-app = Server("redbee-mcp")
+# Application FastAPI
+app = FastAPI(
+    title="Red Bee MCP Server",
+    description="Serveur MCP pour Red Bee Media OTT Platform",
+    version="1.0.0"
+)
 
-@app.list_tools()
-async def handle_list_tools() -> List[Tool]:
+# Configuration CORS pour permettre les requêtes cross-origin
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Serveur MCP interne
+mcp_server = Server("redbee-mcp")
+
+async def get_available_tools() -> List[Tool]:
     """Liste tous les outils MCP disponibles pour Red Bee Media"""
     tools = []
     
@@ -58,8 +87,7 @@ async def handle_list_tools() -> List[Tool]:
     logger.info(f"Red Bee MCP: {len(tools)} outils disponibles")
     return tools
 
-@app.call_tool()
-async def handle_call_tool(name: str, arguments: dict) -> List[TextContent]:
+async def execute_tool(name: str, arguments: dict) -> List[TextContent]:
     """Gestionnaire principal pour les appels d'outils MCP"""
     
     config = get_config()
@@ -338,20 +366,81 @@ async def handle_call_tool(name: str, arguments: dict) -> List[TextContent]:
             text=f"Erreur lors de l'exécution de l'outil {name}: {str(e)}"
         )]
 
-async def main():
-    """Point d'entrée principal du serveur MCP"""
-    async with stdio_server() as (read_stream, write_stream):
-        await app.run(
-            read_stream,
-            write_stream,
-            InitializationOptions(
-                server_name="redbee-mcp",
-                server_version="1.0.0",
-                capabilities=ServerCapabilities(
-                    tools={}
-                )
-            )
+# === ENDPOINTS HTTP ===
+
+@app.get("/")
+async def root():
+    """Point d'entrée racine avec informations sur le serveur"""
+    return {
+        "service": "Red Bee MCP Server",
+        "version": "1.0.0",
+        "status": "running",
+        "endpoints": {
+            "tools": "/tools",
+            "call": "/call",
+            "health": "/health"
+        }
+    }
+
+@app.get("/health")
+async def health_check():
+    """Vérification de santé du serveur"""
+    config = get_config()
+    return {
+        "status": "healthy",
+        "timestamp": os.getenv("REDBEE_SYSTEM_TIME", "unknown"),
+        "configuration": {
+            "customer": config.customer,
+            "business_unit": config.business_unit,
+            "exposure_base_url": config.exposure_base_url
+        }
+    }
+
+@app.get("/tools")
+async def list_tools():
+    """Liste tous les outils MCP disponibles"""
+    try:
+        tools = await get_available_tools()
+        return {
+            "success": True,
+            "tools": [tool.model_dump() for tool in tools],
+            "count": len(tools)
+        }
+    except Exception as e:
+        logger.error(f"Erreur lors de la récupération des outils: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/call", response_model=ToolCallResponse)
+async def call_tool(request: ToolCallRequest):
+    """Appelle un outil MCP spécifique"""
+    try:
+        result = await execute_tool(request.name, request.arguments)
+        return ToolCallResponse(
+            success=True,
+            data=result
+        )
+    except Exception as e:
+        logger.error(f"Erreur lors de l'appel de l'outil {request.name}: {str(e)}")
+        return ToolCallResponse(
+            success=False,
+            error=str(e)
         )
 
+# Point d'entrée pour uvicorn
+def start_server():
+    """Démarre le serveur HTTP sur le port 8000"""
+    port = int(os.getenv("PORT", "8000"))
+    host = os.getenv("HOST", "0.0.0.0")
+    
+    logger.info(f"Démarrage du serveur Red Bee MCP sur {host}:{port}")
+    
+    uvicorn.run(
+        "redbee_mcp.server:app",
+        host=host,
+        port=port,
+        reload=False,
+        log_level="info"
+    )
+
 if __name__ == "__main__":
-    asyncio.run(main()) 
+    start_server() 

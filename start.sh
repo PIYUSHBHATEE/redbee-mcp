@@ -21,7 +21,9 @@ export PYTHONPATH=$(pwd)/src
 export REDBEE_CUSTOMER=TV5MONDE
 export REDBEE_BUSINESS_UNIT=TV5MONDEplus
 export REDBEE_EXPOSURE_BASE_URL=https://exposure.api.redbee.live
+export HOST=0.0.0.0
+export PORT=8000
 
-# Lancer le serveur MCP
-echo "Lancement du MCP..."
+# Lancer le serveur HTTP MCP
+echo "Lancement du serveur Red Bee MCP sur http://$HOST:$PORT"
 python -m redbee_mcp.server
