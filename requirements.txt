@@ -5,4 +5,6 @@ pydantic>=2.0.0
 python-dateutil>=2.8.0
 # Serveur HTTP pour déploiement
 fastapi>=0.104.0
-uvicorn>=0.24.0 
+uvicorn>=0.24.0
+# Client HTTP asynchrone requis par certains outils
+aiohttp>=3.8.0 
