@@ -1,6 +1,7 @@
 """
-Outils MCP pour la gestion du contenu Red Bee Media
-Basé sur l'API Exposure de Red Bee Media - Documentation Swagger
+MCP Tools for Red Bee Media Content Management
+
+This module provides content-related tools for Red Bee Media platform.
 """
 
 import json
@@ -248,7 +249,7 @@ async def get_epg_for_channel(
             if fromDate:
                 endpoint = f"/v2/customer/{config.customer}/businessunit/{config.business_unit}/epg/{channelId}/date/{fromDate}"
             else:
-                # Utiliser la date d'aujourd'hui par défaut
+                # Use today's date as default
                 from datetime import date
                 today = date.today().strftime("%Y-%m-%d")
                 endpoint = f"/v2/customer/{config.customer}/businessunit/{config.business_unit}/epg/{channelId}/date/{today}"
@@ -406,7 +407,7 @@ async def list_assets(
             "fieldSet": fieldSet
         }
         
-        # Ajouter les paramètres optionnels seulement s'ils sont fournis
+                    # Add optional parameters only if provided
         if assetType:
             params["assetType"] = assetType
         if assetTypes:
@@ -457,7 +458,7 @@ async def list_assets(
                 if response.status == 200:
                     data = await response.json()
                     
-                    # Formater la réponse
+                    # Format the response
                     result = f"Liste des assets Red Bee Media:\n"
                     result += f"Page {data.get('pageNumber', 1)} sur {data.get('pageSize', pageSize)} éléments\n"
                     result += f"Total: {data.get('totalCount', 0)} assets\n\n"
@@ -483,7 +484,7 @@ async def list_assets(
         return [TextContent(type="text", text=f"Erreur lors de la récupération des assets: {str(e)}")]
 
 
-# Définition des outils MCP
+# MCP Tool definitions
 CONTENT_TOOLS = [
     Tool(
         name="get_public_asset_details",
@@ -797,3 +798,7 @@ CONTENT_TOOLS = [
         }
     )
 ] 
+
+def get_all_content_tools() -> List[Tool]:
+    """Return all content tools"""
+    return CONTENT_TOOLS 

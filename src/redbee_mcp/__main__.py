@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
-Point d'entrée principal pour le module redbee_mcp
-- Par défaut: lance le serveur HTTP (pour déploiement AWS)
-- Pour Cursor: utilisez server_hybrid directement
+Main entry point for Red Bee MCP server
 """
 
-import sys
-from .server import start_server
+import asyncio
+
+def main():
+    """Entry point for uvx script - Lance directement le serveur MCP"""
+    from .server import main as server_main
+    asyncio.run(server_main())
 
 if __name__ == "__main__":
-    # Le serveur HTTP est le comportement par défaut pour AWS
-    start_server() 
+    main() 

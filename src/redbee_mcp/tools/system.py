@@ -1,309 +1,267 @@
 """
-Outils MCP pour les informations système Red Bee Media
-Basé sur l'API Exposure de Red Bee Media - Documentation Swagger
+MCP Tools for Red Bee Media System Information
+
+This module provides system information tools for Red Bee Media platform.
 """
 
 import json
-from typing import Any, Dict, List, Optional
-from mcp.types import Tool, TextContent
+from typing import List
+from mcp.types import TextContent, Tool
 
-from ..client import RedBeeClient, RedBeeAPIError
-from ..models import RedBeeConfig
-
-
-async def get_system_config(
-    config: RedBeeConfig
-) -> List[TextContent]:
-    """Récupère la configuration système via l'endpoint v2"""
+async def get_system_config_impl(config, session_token=None):
+    """Get system configuration via v2 endpoint"""
+    import httpx
     
     try:
-        async with RedBeeClient(config) as client:
-            # Utiliser l'endpoint v2 selon la documentation
-            result = await client._make_request(
-                "GET",
-                f"/v2/customer/{config.customer}/businessunit/{config.business_unit}/system/config",
-                include_auth=False
-            )
+        url = f"{config.exposure_base_url}/v2/customer/{config.customer}/businessunit/{config.business_unit}/session/config"
+        headers = {
+            "accept": "application/json"
+        }
+        if session_token:
+            headers["authorization"] = f"Bearer {session_token}"
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, headers=headers)
+            result = response.json()
             
-            return [TextContent(
-                type="text",
-                text=f"Configuration système Red Bee Media:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
-            )]
-            
-    except RedBeeAPIError as e:
-        return [TextContent(
-            type="text",
-            text=f"Erreur API Red Bee: {e.message} (Status: {e.status_code})"
-        )]
+            return [
+                TextContent(
+                    type="text",
+                    text=f"Red Bee Media System Configuration:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
+                )
+            ]
     except Exception as e:
-        return [TextContent(
-            type="text",
-            text=f"Erreur lors de la récupération de la config: {str(e)}"
-        )]
+        return [
+            TextContent(
+                type="text", 
+                text=f"Error getting system configuration: {str(e)}"
+            )
+        ]
 
-
-async def get_system_time(
-    config: RedBeeConfig
-) -> List[TextContent]:
-    """Récupère l'heure système via l'endpoint v1"""
+async def get_system_time_impl(config, session_token=None):
+    """Get system time via v1 endpoint"""
+    import httpx
     
     try:
-        async with RedBeeClient(config) as client:
-            # Utiliser l'endpoint v1 selon la documentation
-            result = await client._make_request(
-                "GET",
-                f"/v1/customer/{config.customer}/businessunit/{config.business_unit}/time",
-                include_auth=False
-            )
+        url = f"{config.exposure_base_url}/v1/time"
+        headers = {
+            "accept": "application/json"
+        }
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, headers=headers)
+            result = response.json()
             
-            return [TextContent(
-                type="text",
-                text=f"Heure système Red Bee Media:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
-            )]
-            
-    except RedBeeAPIError as e:
-        return [TextContent(
-            type="text",
-            text=f"Erreur API Red Bee: {e.message} (Status: {e.status_code})"
-        )]
+            return [
+                TextContent(
+                    type="text",
+                    text=f"Red Bee Media System Time:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
+                )
+            ]
     except Exception as e:
-        return [TextContent(
-            type="text",
-            text=f"Erreur lors de la récupération de l'heure: {str(e)}"
-        )]
+        return [
+            TextContent(
+                type="text", 
+                text=f"Error getting system time: {str(e)}"
+            )
+        ]
 
-
-async def get_user_location(
-    config: RedBeeConfig
-) -> List[TextContent]:
-    """Récupère la localisation géographique via l'endpoint v1"""
+async def get_user_location_impl(config, session_token=None):
+    """Get user location information"""
+    import httpx
     
     try:
-        async with RedBeeClient(config) as client:
-            # Utiliser l'endpoint v1 selon la documentation
-            result = await client._make_request(
-                "GET",
-                f"/v1/customer/{config.customer}/businessunit/{config.business_unit}/location",
-                include_auth=False
-            )
+        url = f"{config.exposure_base_url}/v1/customer/{config.customer}/businessunit/{config.business_unit}/geoip"
+        headers = {
+            "accept": "application/json"
+        }
+        if session_token:
+            headers["authorization"] = f"Bearer {session_token}"
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, headers=headers)
+            result = response.json()
             
-            return [TextContent(
-                type="text",
-                text=f"Localisation utilisateur Red Bee Media:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
-            )]
-            
-    except RedBeeAPIError as e:
-        return [TextContent(
-            type="text",
-            text=f"Erreur API Red Bee: {e.message} (Status: {e.status_code})"
-        )]
+            return [
+                TextContent(
+                    type="text",
+                    text=f"User Location Information:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
+                )
+            ]
     except Exception as e:
-        return [TextContent(
-            type="text",
-            text=f"Erreur lors de la récupération de la localisation: {str(e)}"
-        )]
+        return [
+            TextContent(
+                type="text", 
+                text=f"Error getting location: {str(e)}"
+            )
+        ]
 
-
-async def get_active_channels(
-    config: RedBeeConfig,
-    sessionToken: Optional[str] = None
-) -> List[TextContent]:
-    """Récupère la liste des chaînes actives via l'endpoint channels"""
+async def get_active_channels_impl(config, session_token=None):
+    """Get active channels"""
+    import httpx
     
     try:
-        async with RedBeeClient(config) as client:
-            if sessionToken:
-                client.session_token = sessionToken
-            elif not client.session_token:
-                await client.authenticate_anonymous()
+        url = f"{config.exposure_base_url}/v1/customer/{config.customer}/businessunit/{config.business_unit}/content/asset"
+        headers = {
+            "accept": "application/json"
+        }
+        if session_token:
+            headers["authorization"] = f"Bearer {session_token}"
+        
+        params = {
+            "assetType": "CHANNEL",
+            "pageSize": 50
+        }
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, headers=headers, params=params)
+            result = response.json()
             
-            # Utiliser l'endpoint channels selon la documentation
-            result = await client._make_request(
-                "GET",
-                f"/v1/customer/{config.customer}/businessunit/{config.business_unit}/channels",
-                include_auth=bool(sessionToken or client.session_token)
-            )
-            
-            return [TextContent(
-                type="text",
-                text=f"Chaînes actives Red Bee Media:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
-            )]
-            
-    except RedBeeAPIError as e:
-        return [TextContent(
-            type="text",
-            text=f"Erreur API Red Bee: {e.message} (Status: {e.status_code})"
-        )]
+            return [
+                TextContent(
+                    type="text",
+                    text=f"Active Channels:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
+                )
+            ]
     except Exception as e:
-        return [TextContent(
-            type="text",
-            text=f"Erreur lors de la récupération des chaînes: {str(e)}"
-        )]
+        return [
+            TextContent(
+                type="text", 
+                text=f"Error getting channels: {str(e)}"
+            )
+        ]
 
-
-async def get_user_devices(
-    config: RedBeeConfig,
-    sessionToken: str
-) -> List[TextContent]:
-    """Récupère la liste des appareils via l'endpoint v2 device"""
+async def get_user_devices_impl(config, session_token=None):
+    """Get user devices"""
+    import httpx
     
     try:
-        async with RedBeeClient(config) as client:
-            client.session_token = sessionToken
+        url = f"{config.exposure_base_url}/v1/customer/{config.customer}/businessunit/{config.business_unit}/user/device"
+        headers = {
+            "accept": "application/json"
+        }
+        if session_token:
+            headers["authorization"] = f"Bearer {session_token}"
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, headers=headers)
+            result = response.json()
             
-            # Utiliser l'endpoint v2 device selon la documentation
-            result = await client._make_request(
-                "GET",
-                f"/v2/customer/{config.customer}/businessunit/{config.business_unit}/device",
-                include_auth=True
-            )
-            
-            return [TextContent(
-                type="text",
-                text=f"Appareils utilisateur Red Bee Media:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
-            )]
-            
-    except RedBeeAPIError as e:
-        return [TextContent(
-            type="text",
-            text=f"Erreur API Red Bee: {e.message} (Status: {e.status_code})"
-        )]
+            return [
+                TextContent(
+                    type="text",
+                    text=f"User Devices:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
+                )
+            ]
     except Exception as e:
-        return [TextContent(
-            type="text",
-            text=f"Erreur lors de la récupération des appareils: {str(e)}"
-        )]
+        return [
+            TextContent(
+                type="text", 
+                text=f"Error getting devices: {str(e)}"
+            )
+        ]
 
-
-async def delete_user_device(
-    config: RedBeeConfig,
-    sessionToken: str,
-    deviceId: str
-) -> List[TextContent]:
-    """Supprime un appareil via l'endpoint v2 device/{deviceId}"""
+async def delete_user_device_impl(config, device_id, session_token=None):
+    """Delete a user device"""
+    import httpx
     
     try:
-        async with RedBeeClient(config) as client:
-            client.session_token = sessionToken
+        url = f"{config.exposure_base_url}/v1/customer/{config.customer}/businessunit/{config.business_unit}/user/device/{device_id}"
+        headers = {
+            "accept": "application/json"
+        }
+        if session_token:
+            headers["authorization"] = f"Bearer {session_token}"
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.delete(url, headers=headers)
             
-            # Utiliser l'endpoint v2 device selon la documentation
-            result = await client._make_request(
-                "DELETE",
-                f"/v2/customer/{config.customer}/businessunit/{config.business_unit}/device/{deviceId}",
-                include_auth=True
-            )
-            
-            response = {
-                "success": True,
-                "device_id": deviceId,
-                "message": "Appareil supprimé"
-            }
-            
-            return [TextContent(
-                type="text",
-                text=f"Suppression appareil Red Bee Media:\n{json.dumps(response, indent=2, ensure_ascii=False)}"
-            )]
-            
-    except RedBeeAPIError as e:
-        return [TextContent(
-            type="text",
-            text=f"Erreur API Red Bee: {e.message} (Status: {e.status_code})"
-        )]
+            if response.status_code == 204:
+                return [
+                    TextContent(
+                        type="text",
+                        text=f"Device {device_id} successfully deleted"
+                    )
+                ]
+            else:
+                result = response.json() if response.headers.get("content-type", "").startswith("application/json") else response.text
+                return [
+                    TextContent(
+                        type="text",
+                        text=f"Delete device response ({response.status_code}):\n{json.dumps(result, indent=2) if isinstance(result, dict) else result}"
+                    )
+                ]
     except Exception as e:
-        return [TextContent(
-            type="text",
-            text=f"Erreur lors de la suppression de l'appareil: {str(e)}"
-        )]
+        return [
+            TextContent(
+                type="text", 
+                text=f"Error deleting device: {str(e)}"
+            )
+        ]
 
-
-# Définition des outils MCP
+# MCP Tool definitions
 SYSTEM_TOOLS = [
     Tool(
         name="get_system_config",
-        description="Récupère la configuration système de la plateforme",
+        description="Get Red Bee Media platform system configuration",
         inputSchema={
             "type": "object",
-            "properties": {
-                "random_string": {
-                    "type": "string",
-                    "description": "Dummy parameter for no-parameter tools"
-                }
-            },
-            "required": ["random_string"]
+            "properties": {},
+            "required": []
         }
     ),
     Tool(
         name="get_system_time",
-        description="Récupère l'heure système du serveur",
+        description="Get Red Bee Media server system time",
         inputSchema={
             "type": "object",
-            "properties": {
-                "random_string": {
-                    "type": "string",
-                    "description": "Dummy parameter for no-parameter tools"
-                }
-            },
-            "required": ["random_string"]
+            "properties": {},
+            "required": []
         }
     ),
     Tool(
         name="get_user_location",
-        description="Récupère la localisation géographique basée sur l'IP",
+        description="Get user geographical location based on IP",
         inputSchema={
             "type": "object",
-            "properties": {
-                "random_string": {
-                    "type": "string",
-                    "description": "Dummy parameter for no-parameter tools"
-                }
-            },
-            "required": ["random_string"]
+            "properties": {},
+            "required": []
         }
     ),
     Tool(
         name="get_active_channels",
-        description="Récupère la liste des chaînes actives",
+        description="Get list of active channels on the platform",
         inputSchema={
             "type": "object",
-            "properties": {
-                "sessionToken": {
-                    "type": "string",
-                    "description": "Token de session utilisateur (optionnel)"
-                }
-            },
+            "properties": {},
             "required": []
         }
     ),
     Tool(
         name="get_user_devices",
-        description="Récupère la liste des appareils d'un utilisateur",
+        description="Get list of user registered devices",
         inputSchema={
             "type": "object",
-            "properties": {
-                "sessionToken": {
-                    "type": "string",
-                    "description": "Token de session utilisateur"
-                }
-            },
-            "required": ["sessionToken"]
+            "properties": {},
+            "required": []
         }
     ),
     Tool(
         name="delete_user_device",
-        description="Supprime un appareil de la liste d'un utilisateur",
+        description="Delete a user device by device ID",
         inputSchema={
             "type": "object",
             "properties": {
-                "sessionToken": {
+                "device_id": {
                     "type": "string",
-                    "description": "Token de session utilisateur"
-                },
-                "deviceId": {
-                    "type": "string",
-                    "description": "ID de l'appareil à supprimer"
+                    "description": "Device ID to delete"
                 }
             },
-            "required": ["sessionToken", "deviceId"]
+            "required": ["device_id"]
         }
     )
-] 
+]
+
+def get_all_system_tools() -> List[Tool]:
+    """Return all system tools"""
+    return SYSTEM_TOOLS 

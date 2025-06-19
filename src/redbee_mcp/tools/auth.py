@@ -1,6 +1,7 @@
 """
-Outils MCP pour l'authentification Red Bee Media
-Basé sur l'API Exposure de Red Bee Media - Documentation Swagger
+MCP Tools for Red Bee Media Authentication
+
+This module provides authentication-related tools for Red Bee Media platform.
 """
 
 import json
@@ -175,7 +176,7 @@ async def logout_user(
         )]
 
 
-# Définition des outils MCP
+# MCP Tool definitions
 AUTH_TOOLS = [
     Tool(
         name="login_user",
@@ -243,3 +244,7 @@ AUTH_TOOLS = [
         }
     )
 ] 
+
+def get_all_auth_tools() -> List[Tool]:
+    """Return all authentication tools"""
+    return AUTH_TOOLS 

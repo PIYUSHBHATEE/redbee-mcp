@@ -4,14 +4,17 @@ CLI entry point for Red Bee MCP
 Usage: redbee-mcp --server-url http://server:8000 --stdio
 """
 
+import argparse
 import asyncio
 import logging
 import os
+import signal
 import sys
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import click
+import json
 
-# Import conditionnel pour éviter l'erreur si httpx n'est pas installé
+# Conditional import to avoid error if httpx is not installed
 try:
     import httpx
     HTTP_AVAILABLE = True
@@ -27,201 +30,176 @@ try:
 except ImportError:
     MCP_AVAILABLE = False
 
-# Configuration logging
-logging.basicConfig(level=logging.WARNING)
+# Configure logging to file to avoid polluting stdout in MCP mode
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('/tmp/redbee-mcp.log'),
+    ]
+)
 logger = logging.getLogger(__name__)
 
-class RedBeeRemoteClient:
-    """Client pour se connecter au serveur Red Bee MCP distant"""
-    
-    def __init__(self, server_url: str):
-        self.server_url = server_url.rstrip('/')
-        if HTTP_AVAILABLE:
-            self.client = httpx.AsyncClient(timeout=30.0)
-        else:
-            self.client = None
-    
-    async def get_tools(self) -> List[Tool]:
-        """Récupère la liste des outils depuis le serveur distant"""
-        if not HTTP_AVAILABLE or not self.client:
-            return [Tool(
-                name="install_httpx",
-                description="Install httpx dependency for Red Bee MCP",
-                inputSchema={"type": "object", "properties": {}, "required": []}
-            )]
+class RedBeeMCPCLI:
+    def __init__(self):
+        self.config = None
+        self.client = None
+        self.server = None
+
+    def parse_args(self) -> argparse.Namespace:
+        """Parse command line arguments and environment variables."""
+        parser = argparse.ArgumentParser(
+            description="Red Bee MCP Server - MCP interface for Red Bee Media APIs"
+        )
+        
+        # Required arguments
+        parser.add_argument(
+            "--customer", 
+            default=os.getenv("REDBEE_CUSTOMER"),
+            help="Red Bee customer identifier"
+        )
+        parser.add_argument(
+            "--business-unit", 
+            default=os.getenv("REDBEE_BUSINESS_UNIT"),
+            help="Red Bee business unit identifier"
+        )
+        
+        # Optional arguments
+        parser.add_argument(
+            "--exposure-base-url", 
+            default=os.getenv("REDBEE_EXPOSURE_BASE_URL", "https://exposure.api.redbee.live"),
+            help="Red Bee Exposure API base URL"
+        )
+        parser.add_argument(
+            "--username", 
+            default=os.getenv("REDBEE_USERNAME"),
+            help="Username for authentication (optional)"
+        )
+        parser.add_argument(
+            "--session-token", 
+            default=os.getenv("REDBEE_SESSION_TOKEN"),
+            help="Session token for authentication (optional)"
+        )
+        parser.add_argument(
+            "--device-id", 
+            default=os.getenv("REDBEE_DEVICE_ID"),
+            help="Device ID for the session (optional)"
+        )
+        parser.add_argument(
+            "--config-id", 
+            default=os.getenv("REDBEE_CONFIG_ID"),
+            help="Configuration ID (optional)"
+        )
+        
+        return parser.parse_args()
+
+    def create_config(self, args: argparse.Namespace):
+        """Create RedBeeConfig from parsed arguments."""
+        from .models import RedBeeConfig
+        
+        return RedBeeConfig(
+            customer=args.customer or "demo",
+            business_unit=args.business_unit or "demo", 
+            exposure_base_url=args.exposure_base_url,
+            username=args.username,
+            session_token=args.session_token,
+            device_id=args.device_id,
+            config_id=args.config_id
+        )
+
+    def setup_client_and_server(self) -> None:
+        """Initialize client and create MCP server with tools."""
+        from .client import RedBeeClient
+        from .tools.auth import get_all_auth_tools
+        from .tools.content import get_all_content_tools  
+        from .tools.user_management import get_all_user_management_tools
+        from .tools.purchases import get_all_purchase_tools
+        from .tools.system import get_all_system_tools
+        
+        self.client = RedBeeClient(self.config)
+        
+        # Get all tools from different modules
+        tools = []
+        tools.extend(get_all_auth_tools())
+        tools.extend(get_all_content_tools())  
+        tools.extend(get_all_user_management_tools())
+        tools.extend(get_all_purchase_tools())
+        tools.extend(get_all_system_tools())
+        
+        logger.info(f"Red Bee MCP: Loaded {len(tools)} tools")
+        
+        # The MCP server will be created in run_stdio_server directly
+
+    def signal_handler(self, signum, frame):
+        """Handle shutdown signals gracefully."""
+        logger.info(f"Received signal {signum}, shutting down...")
+        sys.exit(0)
+
+    async def run_stdio_server(self) -> None:
+        """Run the MCP server in stdio mode."""
+        import mcp.server.stdio
+        from .server import main as server_main
+        
+        # Setup signal handlers
+        signal.signal(signal.SIGINT, self.signal_handler)
+        signal.signal(signal.SIGTERM, self.signal_handler)
         
         try:
-            response = await self.client.get(f"{self.server_url}/tools")
-            response.raise_for_status()
-            data = response.json()
-            
-            tools = []
-            for tool_data in data["tools"]:
-                tools.append(Tool(**tool_data))
-            
-            logger.info(f"Red Bee MCP: Loaded {len(tools)} tools from {self.server_url}")
-            return tools
-            
+            # Use the server's main function directly
+            await server_main()
         except Exception as e:
-            return [Tool(
-                name="connection_error",
-                description=f"Failed to connect to Red Bee server: {str(e)}",
-                inputSchema={"type": "object", "properties": {}, "required": []}
-            )]
-    
-    async def call_tool(self, name: str, arguments: dict) -> List[TextContent]:
-        """Appelle un outil via le serveur distant"""
-        
-        if name == "install_httpx":
-            return [TextContent(
-                type="text",
-                text="To use Red Bee MCP, install httpx:\n\npip install httpx\n\nThen restart your MCP client."
-            )]
-        
-        if name == "connection_error":
-            return [TextContent(
-                type="text",
-                text=f"""Failed to connect to Red Bee MCP server.
+            logger.error(f"Error running server: {e}")
+            raise
 
-Server URL: {self.server_url}
-
-Please check:
-1. The server is running on AWS EC2
-2. The URL is correct
-3. Port 8000 is accessible
-4. Your internet connection
-
-Test with: curl {self.server_url}/health"""
-            )]
-        
-        if not HTTP_AVAILABLE or not self.client:
-            return [TextContent(
-                type="text",
-                text="Missing dependencies. Install with: pip install httpx"
-            )]
-        
+    async def run(self) -> None:
+        """Main entry point."""
         try:
-            payload = {"name": name, "arguments": arguments}
-            response = await self.client.post(
-                f"{self.server_url}/call",
-                json=payload,
-                headers={"Content-Type": "application/json"}
-            )
-            response.raise_for_status()
-            result = response.json()
+            args = self.parse_args()
+            self.config = self.create_config(args)
             
-            if result.get("success"):
-                return result["data"]
-            else:
-                return [TextContent(
-                    type="text",
-                    text=f"Server error: {result.get('error', 'Unknown error')}"
-                )]
+            # Set environment variables for the server
+            os.environ["REDBEE_CUSTOMER"] = self.config.customer
+            os.environ["REDBEE_BUSINESS_UNIT"] = self.config.business_unit
+            os.environ["REDBEE_EXPOSURE_BASE_URL"] = self.config.exposure_base_url
+            if self.config.username:
+                os.environ["REDBEE_USERNAME"] = self.config.username
+            if self.config.session_token:
+                os.environ["REDBEE_SESSION_TOKEN"] = self.config.session_token
+            if self.config.device_id:
+                os.environ["REDBEE_DEVICE_ID"] = self.config.device_id
+            if self.config.config_id:
+                os.environ["REDBEE_CONFIG_ID"] = self.config.config_id
                 
+            await self.run_stdio_server()
+        except KeyboardInterrupt:
+            logger.info("Interrupted by user")
         except Exception as e:
-            return [TextContent(
-                type="text",
-                text=f"Communication error with AWS server: {str(e)}"
-            )]
-    
-    async def close(self):
-        """Ferme les connexions"""
-        if self.client:
-            await self.client.aclose()
+            logger.error(f"Fatal error: {e}")
+            raise
 
-async def run_mcp_server(server_url: str):
-    """Lance le serveur MCP avec connexion au serveur distant"""
-    
-    if not MCP_AVAILABLE:
-        click.echo("Error: MCP SDK not available. Install with: pip install mcp", err=True)
-        sys.exit(1)
-    
-    # Créer le serveur MCP
-    app = Server("redbee-mcp-client")
-    client = RedBeeRemoteClient(server_url)
-    
-    @app.list_tools()
-    async def handle_list_tools() -> List[Tool]:
-        """Liste tous les outils via le serveur distant"""
-        return await client.get_tools()
-    
-    @app.call_tool()
-    async def handle_call_tool(name: str, arguments: dict) -> List[TextContent]:
-        """Appelle un outil via le serveur distant"""
-        return await client.call_tool(name, arguments)
-    
+def main():
+    """Main entry point for the CLI."""
     try:
-        # Démarrer le serveur MCP stdio
-        async with stdio_server() as (read_stream, write_stream):
-            await app.run(
-                read_stream,
-                write_stream,
-                InitializationOptions(
-                    server_name="redbee-mcp-client",
-                    server_version="1.0.0",
-                    capabilities=ServerCapabilities(tools={})
-                )
+        cli = RedBeeMCPCLI()
+        
+        # Check if arguments were provided
+        args = sys.argv[1:]
+        if not args:
+            # Show help if no options are specified
+            parser = argparse.ArgumentParser(
+                description="Red Bee MCP Server - MCP interface for Red Bee Media APIs"
             )
-    finally:
-        await client.close()
-
-@click.command()
-@click.option(
-    '--server-url',
-    default='http://51.20.4.56:8000',
-    help='Red Bee MCP server URL (default: http://51.20.4.56:8000)',
-    envvar='REDBEE_SERVER_URL'
-)
-@click.option(
-    '--stdio',
-    is_flag=True,
-    help='Use stdio transport (required for MCP clients like Cursor)'
-)
-@click.option(
-    '--test',
-    is_flag=True,
-    help='Test connection to the server'
-)
-@click.version_option(version="1.0.0", prog_name="redbee-mcp")
-def main(server_url: str, stdio: bool, test: bool):
-    """
-    Red Bee MCP Client - Connect to Red Bee Media OTT Platform via MCP
-    
-    Examples:
-      redbee-mcp --stdio
-      redbee-mcp --server-url http://your-server:8000 --stdio
-      redbee-mcp --test
-    """
-    
-    if test:
-        # Test de connexion simple
-        click.echo(f"Testing connection to {server_url}...")
-        if HTTP_AVAILABLE:
-            import httpx
-            try:
-                response = httpx.get(f"{server_url}/health", timeout=10)
-                response.raise_for_status()
-                data = response.json()
-                click.echo(f"✅ Server is healthy: {data.get('status', 'unknown')}")
-                sys.exit(0)
-            except Exception as e:
-                click.echo(f"❌ Connection failed: {e}")
-                sys.exit(1)
-        else:
-            click.echo("❌ httpx not installed. Install with: pip install httpx")
-            sys.exit(1)
-    
-    if stdio:
-        # Lancer le serveur MCP stdio
-        asyncio.run(run_mcp_server(server_url))
-    else:
-        # Afficher l'aide si aucune option n'est spécifiée
-        click.echo("Red Bee MCP Client")
-        click.echo(f"Server URL: {server_url}")
-        click.echo("")
-        click.echo("Use --stdio to start MCP server mode")
-        click.echo("Use --test to test server connection")
-        click.echo("Use --help for more options")
+            parser.add_argument("--customer", help="Red Bee customer identifier")
+            parser.add_argument("--business-unit", help="Red Bee business unit identifier")
+            parser.print_help()
+            return
+            
+        asyncio.run(cli.run())
+    except KeyboardInterrupt:
+        pass
+    except Exception as e:
+        logger.error(f"Application error: {e}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main() 

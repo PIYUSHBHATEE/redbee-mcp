@@ -1,6 +1,7 @@
 """
-Outils MCP pour la gestion des achats et transactions Red Bee Media
-Basé sur l'API Exposure de Red Bee Media - Documentation Swagger
+MCP Tools for Red Bee Media Purchases and Transactions
+
+This module provides purchase and transaction management tools for Red Bee Media platform.
 """
 
 import json
@@ -264,7 +265,7 @@ async def add_payment_method(
         )]
 
 
-# Définition des outils MCP
+# MCP Tool definitions
 PURCHASES_TOOLS = [
     Tool(
         name="get_account_purchases",
@@ -386,3 +387,7 @@ PURCHASES_TOOLS = [
         }
     )
 ] 
+
+def get_all_purchase_tools() -> List[Tool]:
+    """Return all purchase tools"""
+    return PURCHASES_TOOLS 

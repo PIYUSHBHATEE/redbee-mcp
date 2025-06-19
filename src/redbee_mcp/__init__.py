@@ -1,22 +1,24 @@
 """
-RedBee MCP - Model Context Protocol pour RedBee Media OTT
+Red Bee MCP Server
 
-Ce package fournit un serveur MCP pour interagir avec l'API RedBee Media OTT.
+MCP Server for Red Bee Media OTT Platform API
 """
 
 __version__ = "1.0.0"
-__author__ = "RedBee MCP Team"
-__email__ = "mcp@redbee.com"
+__author__ = "Tamsi Besson"
 
-# Import seulement le client par défaut pour éviter les dépendances lourdes
+# Import only the client by default to avoid heavy dependencies
 from .client import RedBeeClient
+from .models import RedBeeConfig
 
-__all__ = ["RedBeeClient"]
-
-# Import conditionnel du serveur (pour ne pas casser si FastAPI n'est pas installé)
+# Conditional server import (to avoid breaking if FastAPI is not installed)
 try:
-    from .server import app, start_server
-    __all__.extend(["app", "start_server"])
+    from .server import create_mcp_server
+    MCP_AVAILABLE = True
 except ImportError:
-    # FastAPI non disponible, on ignore silencieusement
-    pass 
+    MCP_AVAILABLE = False
+
+__all__ = ["RedBeeClient", "RedBeeConfig"]
+
+if MCP_AVAILABLE:
+    __all__.append("create_mcp_server") 

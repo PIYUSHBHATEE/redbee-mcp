@@ -7,12 +7,7 @@ Documentation: https://exposure.api.redbee.live/docs
 import asyncio
 import logging
 import os
-from typing import Any, Dict, List
-
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-import uvicorn
+from typing import Any, Dict, List, Optional, Sequence
 
 from mcp.server import Server
 from mcp.server.models import InitializationOptions
@@ -23,23 +18,18 @@ from .tools.content import CONTENT_TOOLS, search_content, get_asset_details, get
 from .tools.auth import AUTH_TOOLS, login_user, create_anonymous_session, validate_session_token, logout_user
 from .tools.user_management import USER_MANAGEMENT_TOOLS, signup_user, change_user_password, get_user_profiles, add_user_profile, select_user_profile, get_user_preferences, set_user_preferences
 from .tools.purchases import PURCHASES_TOOLS, get_account_purchases, get_account_transactions, get_offerings, purchase_product_offering, cancel_purchase_subscription, get_stored_payment_methods, add_payment_method
-from .tools.system import SYSTEM_TOOLS, get_system_config, get_system_time, get_user_location, get_active_channels, get_user_devices, delete_user_device
+from .tools.system import SYSTEM_TOOLS, get_system_config_impl, get_system_time_impl, get_user_location_impl, get_active_channels_impl, get_user_devices_impl, delete_user_device_impl
 
-# Configuration du logging
-logging.basicConfig(level=logging.INFO)
+# Configuration du logging pour MCP (pas de sortie console)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('/tmp/redbee-mcp.log'),
+    ]
+)
 logger = logging.getLogger(__name__)
 
-# Modèles Pydantic pour l'API HTTP
-class ToolCallRequest(BaseModel):
-    name: str
-    arguments: dict = {}
-
-class ToolCallResponse(BaseModel):
-    success: bool
-    data: List[TextContent] = []
-    error: str = None
-
-# Configuration Red Bee Media à partir des variables d'environnement
 def get_config() -> RedBeeConfig:
     """Récupère la configuration Red Bee à partir des variables d'environnement"""
     return RedBeeConfig(
@@ -53,25 +43,6 @@ def get_config() -> RedBeeConfig:
         device_id=os.getenv("REDBEE_DEVICE_ID"),
         timeout=int(os.getenv("REDBEE_TIMEOUT", "30"))
     )
-
-# Application FastAPI
-app = FastAPI(
-    title="Red Bee MCP Server",
-    description="Serveur MCP pour Red Bee Media OTT Platform",
-    version="1.0.0"
-)
-
-# Configuration CORS pour permettre les requêtes cross-origin
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Serveur MCP interne
-mcp_server = Server("redbee-mcp")
 
 async def get_available_tools() -> List[Tool]:
     """Liste tous les outils MCP disponibles pour Red Bee Media"""
@@ -92,11 +63,11 @@ async def execute_tool(name: str, arguments: dict) -> List[TextContent]:
     
     config = get_config()
     
-    # Validation de la configuration minimale
+    # Validation de la configuration minimale seulement lors de l'appel d'outil
     if not config.customer or not config.business_unit:
         return [TextContent(
             type="text",
-            text="Erreur de configuration: REDBEE_CUSTOMER et REDBEE_BUSINESS_UNIT sont requis"
+            text="❌ Configuration manquante: REDBEE_CUSTOMER et REDBEE_BUSINESS_UNIT sont requis.\n\nVeuillez configurer :\n- REDBEE_CUSTOMER (ex: TV5MONDE)\n- REDBEE_BUSINESS_UNIT (ex: TV5MONDEplus)\n\nDans votre mcp.json ou comme variables d'environnement."
         )]
     
     try:
@@ -198,31 +169,12 @@ async def execute_tool(name: str, arguments: dict) -> List[TextContent]:
                 config,
                 assetType=args.get("assetType"),
                 assetTypes=args.get("assetTypes"),
-                sort=args.get("sort"),
-                query=args.get("query"),
-                assetIds=args.get("assetIds"),
-                parentalRatings=args.get("parentalRatings"),
-                pageSize=args.get("pageSize", 50),
                 pageNumber=args.get("pageNumber", 1),
-                onlyPublished=args.get("onlyPublished", True),
-                playableWithinHours=args.get("playableWithinHours"),
-                service=args.get("service"),
-                allowedCountry=args.get("allowedCountry"),
-                deviceType=args.get("deviceType"),
-                deviceQuery=args.get("deviceQuery"),
-                publicationQuery=args.get("publicationQuery"),
-                products=args.get("products"),
-                missingFieldsFilter=args.get("missingFieldsFilter"),
-                programsOnChannelIds=args.get("programsOnChannelIds"),
-                includeTvShow=args.get("includeTvShow"),
-                publicationStartsWithinDays=args.get("publicationStartsWithinDays"),
-                publicationEndsWithinDays=args.get("publicationEndsWithinDays"),
-                fieldSet=args.get("fieldSet", "PARTIAL"),
-                includeFields=args.get("includeFields"),
-                excludeFields=args.get("excludeFields")
+                pageSize=args.get("pageSize", 50),
+                sort=args.get("sort")
             )
         
-        # === OUTILS GESTION UTILISATEURS ===
+        # === OUTILS GESTION UTILISATEUR ===
         elif name == "signup_user":
             return await signup_user(
                 config=config,
@@ -230,7 +182,8 @@ async def execute_tool(name: str, arguments: dict) -> List[TextContent]:
                 password=arguments["password"],
                 email=arguments.get("email"),
                 firstName=arguments.get("firstName"),
-                lastName=arguments.get("lastName")
+                lastName=arguments.get("lastName"),
+                dateOfBirth=arguments.get("dateOfBirth")
             )
         
         elif name == "change_user_password":
@@ -326,31 +279,31 @@ async def execute_tool(name: str, arguments: dict) -> List[TextContent]:
         
         # === OUTILS SYSTÈME ===
         elif name == "get_system_config":
-            return await get_system_config(config=config)
+            return await get_system_config_impl(config=config)
         
         elif name == "get_system_time":
-            return await get_system_time(config=config)
+            return await get_system_time_impl(config=config)
         
         elif name == "get_user_location":
-            return await get_user_location(config=config)
+            return await get_user_location_impl(config=config)
         
         elif name == "get_active_channels":
-            return await get_active_channels(
+            return await get_active_channels_impl(
                 config=config,
-                sessionToken=arguments.get("sessionToken")
+                session_token=arguments.get("sessionToken")
             )
         
         elif name == "get_user_devices":
-            return await get_user_devices(
+            return await get_user_devices_impl(
                 config=config,
-                sessionToken=arguments["sessionToken"]
+                session_token=arguments["sessionToken"]
             )
         
         elif name == "delete_user_device":
-            return await delete_user_device(
+            return await delete_user_device_impl(
                 config=config,
-                sessionToken=arguments["sessionToken"],
-                deviceId=arguments["deviceId"]
+                device_id=arguments["deviceId"],
+                session_token=arguments["sessionToken"]
             )
         
         else:
@@ -366,81 +319,47 @@ async def execute_tool(name: str, arguments: dict) -> List[TextContent]:
             text=f"Erreur lors de l'exécution de l'outil {name}: {str(e)}"
         )]
 
-# === ENDPOINTS HTTP ===
+# Création du serveur MCP
+server = Server("redbee-mcp")
 
-@app.get("/")
-async def root():
-    """Point d'entrée racine avec informations sur le serveur"""
-    return {
-        "service": "Red Bee MCP Server",
-        "version": "1.0.0",
-        "status": "running",
-        "endpoints": {
-            "tools": "/tools",
-            "call": "/call",
-            "health": "/health"
-        }
-    }
+@server.list_tools()
+async def handle_list_tools() -> List[Tool]:
+    """Handler pour lister les outils disponibles"""
+    return await get_available_tools()
 
-@app.get("/health")
-async def health_check():
-    """Vérification de santé du serveur"""
-    config = get_config()
-    return {
-        "status": "healthy",
-        "timestamp": os.getenv("REDBEE_SYSTEM_TIME", "unknown"),
-        "configuration": {
-            "customer": config.customer,
-            "business_unit": config.business_unit,
-            "exposure_base_url": config.exposure_base_url
-        }
-    }
-
-@app.get("/tools")
-async def list_tools():
-    """Liste tous les outils MCP disponibles"""
+@server.call_tool()
+async def handle_call_tool(name: str, arguments: dict) -> List[TextContent]:
+    """Handler pour appeler un outil"""
     try:
-        tools = await get_available_tools()
-        return {
-            "success": True,
-            "tools": [tool.model_dump() for tool in tools],
-            "count": len(tools)
-        }
+        result = await execute_tool(name, arguments or {})
+        return result
     except Exception as e:
-        logger.error(f"Erreur lors de la récupération des outils: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Erreur lors de l'appel de l'outil {name}: {str(e)}")
+        return [TextContent(
+            type="text",
+            text=f"Erreur: {str(e)}"
+        )]
 
-@app.post("/call", response_model=ToolCallResponse)
-async def call_tool(request: ToolCallRequest):
-    """Appelle un outil MCP spécifique"""
-    try:
-        result = await execute_tool(request.name, request.arguments)
-        return ToolCallResponse(
-            success=True,
-            data=result
-        )
-    except Exception as e:
-        logger.error(f"Erreur lors de l'appel de l'outil {request.name}: {str(e)}")
-        return ToolCallResponse(
-            success=False,
-            error=str(e)
-        )
-
-# Point d'entrée pour uvicorn
-def start_server():
-    """Démarre le serveur HTTP sur le port 8000"""
-    port = int(os.getenv("PORT", "8000"))
-    host = os.getenv("HOST", "0.0.0.0")
+async def main():
+    """Point d'entrée principal du serveur MCP"""
+    # Pas de log de démarrage pour éviter la pollution de stdout en mode MCP
     
-    logger.info(f"Démarrage du serveur Red Bee MCP sur {host}:{port}")
+    # Le serveur démarre toujours, la validation se fait lors de l'appel des outils
     
-    uvicorn.run(
-        "redbee_mcp.server:app",
-        host=host,
-        port=port,
-        reload=False,
-        log_level="info"
-    )
+    # Lancer le serveur MCP
+    from mcp.server.stdio import stdio_server
+    async with stdio_server() as (read_stream, write_stream):
+        await server.run(
+            read_stream,
+            write_stream,
+            InitializationOptions(
+                server_name="redbee-mcp",
+                server_version="1.0.0",
+                capabilities=ServerCapabilities(
+                    tools={}
+                )
+            )
+        )
 
 if __name__ == "__main__":
-    start_server() 
+    asyncio.run(main()) 

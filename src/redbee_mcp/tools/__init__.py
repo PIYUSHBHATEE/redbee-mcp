@@ -1,6 +1,7 @@
 """
-Outils MCP pour Red Bee Media OTT Platform
-Basé sur l'API Exposure de Red Bee Media
+MCP Tools for Red Bee Media OTT Platform
+
+This module contains all the MCP tools for interacting with Red Bee Media APIs.
 """
 
 from .auth import AUTH_TOOLS

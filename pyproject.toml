@@ -4,51 +4,72 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "redbee-mcp"
-version = "1.0.0"
-description = "Model Context Protocol server for Red Bee Media OTT Platform"
-readme = "README.md"
-license = {text = "MIT"}
+version = "1.0.2"
+description = "MCP Server for Red Bee Media OTT Platform - MCP Interface for Exposure APIs"
 authors = [
-    {name = "Red Bee MCP Team", email = "mcp@redbee.com"}
+    {name = "Tamsi Besson", email = "tamsi.besson@gmail.com"}
 ]
-keywords = ["mcp", "redbee", "streaming", "ott"]
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.8"
+keywords = ["mcp", "model-context-protocol", "redbee", "media", "ott", "streaming", "api"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Communications",
+    "Topic :: Multimedia :: Video",
+    "Operating System :: OS Independent",
 ]
-requires-python = ">=3.8"
 dependencies = [
     "mcp>=1.0.0",
-    "httpx>=0.24.0",
+    "aiohttp>=3.8.0",
     "pydantic>=2.0.0",
-    "python-dateutil>=2.8.0",
-    "click>=8.0.0",
+    "httpx>=0.25.0",
 ]
 
 [project.optional-dependencies]
-server = [
-    "fastapi>=0.104.0",
-    "uvicorn>=0.24.0",
-    "aiohttp>=3.8.0",
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=22.0.0",
+    "isort>=5.10.0",
+    "flake8>=5.0.0",
+    "mypy>=1.0.0",
 ]
 
-[project.urls]
-Homepage = "https://github.com/votre-username/redbee-MCP"
-Repository = "https://github.com/votre-username/redbee-MCP"
-Issues = "https://github.com/votre-username/redbee-MCP/issues"
-
 [project.scripts]
-redbee-mcp = "redbee_mcp.cli:main"
+redbee-mcp = "redbee_mcp.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/tamsibesson/redbee-mcp"
+Documentation = "https://github.com/tamsibesson/redbee-mcp#readme"
+Repository = "https://github.com/tamsibesson/redbee-mcp.git"
+"Bug Tracker" = "https://github.com/tamsibesson/redbee-mcp/issues"
+"Red Bee Media" = "https://www.redbeemedia.com/"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
-[tool.setuptools.package-dir]
-"" = "src" 
+[tool.setuptools.package-data]
+redbee_mcp = ["py.typed"]
+
+[tool.black]
+line-length = 100
+target-version = ['py38']
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true 

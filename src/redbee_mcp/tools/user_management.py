@@ -1,6 +1,7 @@
 """
-Outils MCP pour la gestion des utilisateurs Red Bee Media
-Basé sur l'API Exposure de Red Bee Media - Documentation Swagger
+MCP Tools for Red Bee Media User Management
+
+This module provides user management tools for Red Bee Media platform.
 """
 
 import json
@@ -281,7 +282,7 @@ async def set_user_preferences(
         )]
 
 
-# Définition des outils MCP
+# MCP Tool definitions
 USER_MANAGEMENT_TOOLS = [
     Tool(
         name="signup_user",
@@ -426,3 +427,7 @@ USER_MANAGEMENT_TOOLS = [
         }
     )
 ] 
+
+def get_all_user_management_tools() -> List[Tool]:
+    """Return all user management tools"""
+    return USER_MANAGEMENT_TOOLS 

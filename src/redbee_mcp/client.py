@@ -3,10 +3,12 @@ Client API pour Red Bee Media OTT Platform
 Basé sur la documentation officielle : https://redbee.live/docs/
 """
 
-import httpx
-from typing import Optional, Dict, List, Any
-from urllib.parse import urljoin
+import asyncio
 import logging
+from typing import Optional, Dict, Any, List
+import httpx
+import json
+from datetime import datetime, timedelta
 
 from .models import (
     RedBeeConfig, 
@@ -21,6 +23,14 @@ from .models import (
     BusinessUnitInfo
 )
 
+# Configure logging to file
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('/tmp/redbee-mcp.log'),
+    ]
+)
 logger = logging.getLogger(__name__)
 
 
@@ -34,342 +44,316 @@ class RedBeeAPIError(Exception):
 
 
 class RedBeeClient:
-    """Client pour interagir avec les APIs Red Bee Media"""
+    """Red Bee Media API client with authentication support"""
     
     def __init__(self, config: RedBeeConfig):
         self.config = config
-        self.session_token = config.session_token
-        self.device_id = config.device_id
+        self.session_token: Optional[str] = config.session_token
+        self.device_id: Optional[str] = config.device_id
+        self.username: Optional[str] = config.username
         
-        # URLs des différentes APIs
-        self.exposure_url = config.exposure_base_url
-        self.analytics_url = config.exposure_base_url.replace("exposure", "eventsink")
+        # Default timeout configuration
+        self.timeout = httpx.Timeout(30.0, connect=10.0)
         
-        # Client HTTP
-        self.client = httpx.AsyncClient(timeout=config.timeout)
-    
-    async def __aenter__(self):
-        return self
-    
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self.client.aclose()
-    
-    def _get_headers(self, include_auth: bool = True) -> Dict[str, str]:
-        """Construit les headers pour les requêtes"""
-        if include_auth and self.session_token:
-            headers = {
-                "Accept": "application/json",
-                "EMP-Auth": self.session_token
-            }
-        else:
-            # Headers minimalistes pour les requêtes publiques (comme le curl qui fonctionne)
-            headers = {
-                "Accept": "application/json"
-            }
-            
+        # Create base client configuration
+        self.client_config = {
+            "timeout": self.timeout,
+            "follow_redirects": True,
+            "verify": True
+        }
+        
+        # Different API URLs
+        self.auth_url = f"{config.exposure_base_url}/auth"
+        self.entitlement_url = f"{config.exposure_base_url}/entitlement" 
+        self.content_url = f"{config.exposure_base_url}/content"
+        
+        # Session data
+        self.account_id: Optional[str] = None
+        self.account_id: Optional[str] = None
+
+    def _get_base_headers(self) -> Dict[str, str]:
+        """Get base headers for requests"""
+        return {
+            "User-Agent": "RedbeePlayer/1.0",
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        }
+
+    def _get_auth_headers(self) -> Dict[str, str]:
+        """Get headers with authentication"""
+        headers = self._get_base_headers()
+        if self.session_token:
+            headers["Authorization"] = f"Bearer {self.session_token}"
         return headers
-    
+
+    def _get_public_headers(self) -> Dict[str, str]:
+        """Minimal headers for public requests (like the curl that works)"""
+        return {
+            "User-Agent": "RedbeePlayer/1.0",
+            "Accept": "application/json"
+        }
+
     async def _make_request(
         self, 
         method: str, 
-        endpoint: str, 
-        data: Optional[Dict] = None,
-        params: Optional[Dict] = None,
-        base_url: Optional[str] = None,
-        include_auth: bool = True
+        url: str, 
+        headers: Optional[Dict[str, str]] = None,
+        params: Optional[Dict[str, Any]] = None,
+        json_data: Optional[Dict[str, Any]] = None,
+        use_auth: bool = True
     ) -> Dict[str, Any]:
-        """Effectue une requête HTTP vers l'API"""
+        """Make HTTP request with proper error handling"""
         
-        url = urljoin(base_url or self.exposure_url, endpoint)
-        headers = self._get_headers(include_auth)
+        if headers is None:
+            if use_auth:
+                headers = self._get_auth_headers()
+            else:
+                # For GET requests without authentication, use a simpler approach
+                headers = self._get_public_headers()
         
         try:
-            # Pour les requêtes GET sans authentification, on utilise une approche plus simple
-            if method == "GET" and not include_auth and not data:
-                response = await self.client.get(url, params=params, headers=headers)
-            else:
-                response = await self.client.request(
-                    method=method,
-                    url=url,
-                    headers=headers,
-                    json=data,
-                    params=params
-                )
-            
-            logger.info(f"REQUEST: {method} {url} -> {response.status_code}")
-            
-            if response.status_code >= 400:
-                error_data = {}
-                try:
-                    error_data = response.json()
-                except:
-                    pass
+            async with httpx.AsyncClient(**self.client_config) as client:
+                if method.upper() == "GET":
+                    response = await client.get(url, headers=headers, params=params)
+                elif method.upper() == "POST":
+                    response = await client.post(url, headers=headers, params=params, json=json_data)
+                elif method.upper() == "PUT":
+                    response = await client.put(url, headers=headers, params=params, json=json_data)
+                elif method.upper() == "DELETE":
+                    response = await client.delete(url, headers=headers, params=params)
+                else:
+                    raise ValueError(f"Unsupported HTTP method: {method}")
                 
-                raise RedBeeAPIError(
-                    message=error_data.get("message", f"HTTP {response.status_code}"),
-                    status_code=response.status_code,
-                    error_code=error_data.get("error_code")
-                )
-            
-            return response.json()
-            
+                logger.info(f"REQUEST: {method} {url} -> {response.status_code}")
+                
+                # Handle different response types
+                if response.status_code == 204:
+                    return {"success": True, "message": "No content"}
+                
+                if response.headers.get("content-type", "").startswith("application/json"):
+                    return response.json()
+                else:
+                    return {"text": response.text, "status_code": response.status_code}
+                    
         except httpx.RequestError as e:
             logger.error(f"Request error: {e}")
-            raise RedBeeAPIError(f"Erreur de requête: {e}")
-    
-    # =====================================
-    # Authentication
-    # =====================================
-    
-    async def authenticate(self, username: Optional[str] = None, password: Optional[str] = None) -> AuthenticationResponse:
-        """Authentifie un utilisateur et obtient un token de session"""
+            raise Exception(f"HTTP request failed: {str(e)}")
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}")
+            raise
+
+    # Authentication methods
+    async def login(self, username: str, password: str) -> Dict[str, Any]:
+        """User login with username and password"""
+        login_data = {
+            "credentials": {
+                "username": username,
+                "password": password
+            },
+            "device": {
+                "deviceId": self.device_id,
+                "name": "Red Bee MCP Client"
+            },
+            "customer": self.config.customer,
+            "businessUnit": self.config.business_unit
+        }
         
-        if username and password:
-            # Authentification utilisateur via v3
-            auth_data = {
-                "credentials": {
-                    "username": username,
-                    "password": password
-                },
-                "device": {
-                    "deviceId": self.device_id or f"web_{self.config.customer}",
-                    "name": "Web Browser",
-                    "type": "WEB"
+        url = f"{self.auth_url}/{self.config.customer}/{self.config.business_unit}/login"
+        result = await self._make_request("POST", url, json_data=login_data, use_auth=False)
+        
+        # Update token for subsequent requests
+        if "sessionToken" in result:
+            self.session_token = result["sessionToken"]
+            if "accountId" in result:
+                self.account_id = result["accountId"]
+        
+        return result
+
+    async def create_anonymous_session(self) -> Dict[str, Any]:
+        """Create an anonymous session"""
+        session_data = {
+            "device": {
+                "deviceId": self.device_id,
+                "name": "Red Bee MCP Client"
+            },
+            "customer": self.config.customer,
+            "businessUnit": self.config.business_unit
+        }
+        
+        url = f"{self.auth_url}/{self.config.customer}/{self.config.business_unit}/session"
+        result = await self._make_request("POST", url, json_data=session_data, use_auth=False)
+        
+        # Update token for subsequent requests
+        if "sessionToken" in result:
+            self.session_token = result["sessionToken"]
+        
+        return result
+
+    async def search_assets_autocomplete(self, query: str, locale: str = "en") -> Dict[str, Any]:
+        """Search assets with autocomplete - special handling for this problematic endpoint"""
+        
+        # Use direct call with a new clean client to avoid header issues
+        url = f"{self.content_url}/{self.config.customer}/{self.config.business_unit}/search/autocomplete"
+        params = {"q": query, "locale": locale}
+        headers = self._get_public_headers()
+        
+        logger.info(f"SEARCH AUTOCOMPLETE - URL: {url}")
+        logger.info(f"SEARCH AUTOCOMPLETE - Headers: {headers}")
+        logger.info(f"SEARCH AUTOCOMPLETE - Params: {params}")
+        
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response_obj = await client.get(url, headers=headers, params=params)
+                
+                logger.info(f"DIRECT REQUEST: GET {url} -> {response_obj.status_code}")
+                
+                if response_obj.status_code != 200:
+                    error_text = response_obj.text
+                    logger.error(f"ERROR RESPONSE: {error_text}")
+                    return {
+                        "error": f"HTTP {response_obj.status_code}",
+                        "message": error_text,
+                        "url": url,
+                        "params": params
+                    }
+                
+                return response_obj.json()
+                
+        except Exception as e:
+            logger.error(f"Request error: {e}")
+            return {
+                "error": "Request failed",
+                "message": str(e),
+                "url": url,
+                "params": params
+            }
+
+    async def search_content(self, query: str, **kwargs) -> Dict[str, Any]:
+        """Search content in the catalog"""
+        url = f"{self.content_url}/{self.config.customer}/{self.config.business_unit}/search"
+        
+        params = {"q": query}
+        params.update(kwargs)
+        
+        result = await self._make_request("GET", url, params=params, use_auth=False)
+        
+        # Different processing depending on response type (autocomplete vs asset listing)
+        if isinstance(result, list):
+            # Autocomplete endpoint response (direct list)
+            return {
+                "items": result,
+                "total": len(result),
+                "query": query,
+                "source": "autocomplete"
+            }
+        elif isinstance(result, dict):
+            # Standard search response
+            if "hits" in result:
+                items = []
+                for hit in result["hits"]:
+                    if "_source" in hit:
+                        item = hit["_source"]
+                        # Add relevance score if available
+                        if "_score" in hit:
+                            item["_relevanceScore"] = hit["_score"]
+                        items.append(item)
+                    else:
+                        items.append(hit)
+                
+                return {
+                    "items": items,
+                    "total": result.get("total", len(items)),
+                    "query": query,
+                    "took": result.get("took"),
+                    "source": "search"
                 }
-            }
-            
-            response = await self._make_request(
-                "POST", 
-                f"/v3/customer/{self.config.customer}/businessunit/{self.config.business_unit}/auth/login",
-                data=auth_data,
-                include_auth=False
-            )
-        else:
-            # Session anonyme via v2
-            auth_data = {
-                "device": {
-                    "deviceId": self.device_id or f"anon_{self.config.customer}",
-                    "type": "WEB"
+            elif "items" in result:
+                # Asset endpoint response (structure with items)
+                return {
+                    "items": result["items"],
+                    "total": result.get("totalCount", len(result["items"])),
+                    "query": query,
+                    "source": "assets"
                 }
-            }
-            
-            response = await self._make_request(
-                "POST", 
-                f"/v2/customer/{self.config.customer}/businessunit/{self.config.business_unit}/auth/anonymous",
-                data=auth_data,
-                include_auth=False
-            )
-        
-        auth_response = AuthenticationResponse(
-            session_token=response["sessionToken"],
-            device_id=response.get("deviceId", self.device_id or ""),
-            expires_at=response.get("expiresAt")
-        )
-        
-        # Met à jour le token pour les requêtes suivantes
-        self.session_token = auth_response.session_token
-        self.device_id = auth_response.device_id
-        
-        return auth_response
-    
-    async def authenticate_anonymous(self) -> AuthenticationResponse:
-        """Authentification anonyme"""
-        return await self.authenticate()
-    
-    # =====================================
-    # Asset Management
-    # =====================================
-    
-    async def search_assets(
-        self, 
-        query: Optional[str] = None,
-        content_type: Optional[str] = None,
-        genre: Optional[str] = None,
-        page: int = 1,
-        per_page: int = 20,
-        sort_by: Optional[str] = None
-    ) -> SearchResult:
-        """Recherche des assets"""
-        
-        # Utiliser l'endpoint autocomplete pour la recherche
-        if query:
-            # Appel direct avec un nouveau client propre pour éviter les problèmes de headers
-            url = f"{self.exposure_url}/v1/customer/{self.config.customer}/businessunit/{self.config.business_unit}/content/search/autocomplete/{query}"
-            headers = {"accept": "application/json"}
-            params = {"locale": "fr"}
-            
-            logger.info(f"SEARCH AUTOCOMPLETE - URL: {url}")
-            logger.info(f"SEARCH AUTOCOMPLETE - Headers: {headers}")
-            logger.info(f"SEARCH AUTOCOMPLETE - Params: {params}")
-            
-            try:
-                # Utiliser un nouveau client HTTP propre
-                async with httpx.AsyncClient() as clean_client:
-                    response_obj = await clean_client.get(url, params=params, headers=headers)
-                    logger.info(f"DIRECT REQUEST: GET {url} -> {response_obj.status_code}")
-                    
-                    if response_obj.status_code >= 400:
-                        error_text = response_obj.text
-                        logger.error(f"ERROR RESPONSE: {error_text}")
-                        raise RedBeeAPIError(
-                            message=error_text,
-                            status_code=response_obj.status_code
-                        )
-                    
-                    response = response_obj.json()
-            except httpx.RequestError as e:
-                logger.error(f"Request error: {e}")
-                raise RedBeeAPIError(f"Erreur de requête: {e}")
+            else:
+                # Return as is if unrecognized format
+                return result
         else:
-            # Fallback vers l'endpoint asset pour lister le contenu
-            params = {
-                "pageSize": per_page,
-                "pageNumber": page,
-                "locale": "fr"
-            }
+            return result
+
+    async def get_asset_details(self, asset_id: str) -> Dict[str, Any]:
+        """Get asset details by ID"""
+        url = f"{self.content_url}/{self.config.customer}/{self.config.business_unit}/asset/{asset_id}"
+        return await self._make_request("GET", url, use_auth=False)
+
+    async def get_playback_info(self, asset_id: str, **kwargs) -> Dict[str, Any]:
+        """Get playback information for an asset"""
+        url = f"{self.entitlement_url}/{self.config.customer}/{self.config.business_unit}/entitlement/{asset_id}/play"
+        
+        params = {}
+        params.update(kwargs)
+        
+        result = await self._make_request("POST", url, json_data=params)
+        
+        # Process playback info
+        if "formats" in result:
+            # Find preferred streaming format
+            preferred_format = None
+            for fmt in result["formats"]:
+                if fmt.get("format") == "DASH":
+                    preferred_format = fmt
+                    break
             
-            if content_type:
-                params["contentType"] = content_type
-            if genre:
-                params["genre"] = genre
-            if sort_by:
-                params["sortBy"] = sort_by
+            if not preferred_format and result["formats"]:
+                preferred_format = result["formats"][0]
             
-            response = await self._make_request(
-                "GET",
-                f"/v1/customer/{self.config.customer}/businessunit/{self.config.business_unit}/content/asset",
-                params=params
-            )
+            if preferred_format:
+                result["preferredPlaybackUrl"] = preferred_format.get("mediaLocator")
         
-        assets = []
+        return result
+
+    # Content methods
+    async def list_assets(self, **kwargs) -> Dict[str, Any]:
+        """List available assets"""
+        url = f"{self.content_url}/{self.config.customer}/{self.config.business_unit}/asset"
         
-        # Traitement différent selon le type de réponse (autocomplete vs asset listing)
-        if query and isinstance(response, list):
-            # Réponse de l'endpoint autocomplete (liste directe)
-            for item in response:
-                asset = Asset(
-                    asset_id=item["assetId"],
-                    title=item.get("text", ""),
-                    description=None,
-                    duration=None,
-                    content_type=None,
-                    media_type=None,
-                    genre=[],
-                    release_date=None,
-                    rating=None,
-                    language=None,
-                    subtitle_languages=[],
-                    poster_url=None,
-                    thumbnail_url=None,
-                    trailer_url=None,
-                    tags=[],
-                    external_references={}
-                )
-                assets.append(asset)
-            
-            return SearchResult(
-                total_results=len(response),
-                page=1,
-                per_page=len(response),
-                total_pages=1,
-                assets=assets
-            )
-        else:
-            # Réponse de l'endpoint asset (structure avec items)
-            for item in response.get("items", []):
-                asset = Asset(
-                    asset_id=item["assetId"],
-                    title=item.get("title", ""),
-                    description=item.get("description"),
-                    duration=item.get("duration"),
-                    content_type=item.get("contentType"),
-                    media_type=item.get("mediaType"),
-                    genre=item.get("genre", []),
-                    release_date=item.get("releaseDate"),
-                    rating=item.get("rating"),
-                    language=item.get("language"),
-                    subtitle_languages=item.get("subtitleLanguages", []),
-                    poster_url=item.get("posterUrl"),
-                    thumbnail_url=item.get("thumbnailUrl"),
-                    trailer_url=item.get("trailerUrl"),
-                    tags=item.get("tags", []),
-                    external_references=item.get("externalReferences", {})
-                )
-                assets.append(asset)
-            
-            return SearchResult(
-                total_results=response.get("totalCount", 0),
-                page=page,
-                per_page=per_page,
-                total_pages=response.get("totalPages", 1),
-                assets=assets
-            )
-    
-    async def get_asset(self, asset_id: str) -> Asset:
-        """Récupère les détails d'un asset"""
+        params = {}
+        params.update(kwargs)
         
-        response = await self._make_request(
-            "GET",
-            f"/v1/customer/{self.config.customer}/businessunit/{self.config.business_unit}/content/asset/{asset_id}",
-            params={"locale": "fr"}
-        )
+        return await self._make_request("GET", url, params=params, use_auth=False)
+
+    async def get_public_asset_details(self, asset_id: str) -> Dict[str, Any]:
+        """Get public asset details (no authentication required)"""
+        url = f"{self.content_url}/{self.config.customer}/{self.config.business_unit}/asset/{asset_id}/publicDetails"
+        return await self._make_request("GET", url, use_auth=False)
+
+    async def get_assets_by_tag(self, tag: str, **kwargs) -> Dict[str, Any]:
+        """Get assets by tag"""
+        url = f"{self.content_url}/{self.config.customer}/{self.config.business_unit}/asset"
         
-        return Asset(
-            asset_id=response["assetId"],
-            title=response.get("title", ""),
-            description=response.get("description"),
-            duration=response.get("duration"),
-            content_type=response.get("contentType"),
-            media_type=response.get("mediaType"),
-            genre=response.get("genre", []),
-            release_date=response.get("releaseDate"),
-            rating=response.get("rating"),
-            language=response.get("language"),
-            subtitle_languages=response.get("subtitleLanguages", []),
-            poster_url=response.get("posterUrl"),
-            thumbnail_url=response.get("thumbnailUrl"),
-            trailer_url=response.get("trailerUrl"),
-            tags=response.get("tags", []),
-            external_references=response.get("externalReferences", {})
-        )
-    
-    async def get_asset_playback_info(self, asset_id: str, user_id: Optional[str] = None) -> PlaybackInfo:
-        """Récupère les informations de lecture pour un asset"""
+        params = {"tag": tag}
+        params.update(kwargs)
         
-        data = {}
-        if user_id:
-            data["userId"] = user_id
+        return await self._make_request("GET", url, params=params, use_auth=False)
+
+    async def get_epg_for_channel(self, channel_id: str, **kwargs) -> Dict[str, Any]:
+        """Get Electronic Program Guide for a channel"""
+        url = f"{self.content_url}/{self.config.customer}/{self.config.business_unit}/epg/{channel_id}"
         
-        response = await self._make_request(
-            "POST",
-            f"/customer/{self.config.customer}/businessunit/{self.config.business_unit}/entitlement/{asset_id}/play",
-            data=data
-        )
+        params = {}
+        params.update(kwargs)
         
-        # Trouve le format de streaming préféré
-        formats = response.get("formats", [])
-        preferred_format = None
+        return await self._make_request("GET", url, params=params, use_auth=False)
+
+    async def get_episodes_for_season(self, season_id: str, **kwargs) -> Dict[str, Any]:
+        """Get episodes for a specific season"""
+        url = f"{self.content_url}/{self.config.customer}/{self.config.business_unit}/asset/{season_id}/episode"
         
-        for format_info in formats:
-            if format_info.get("format") in ["HLS", "DASH"]:
-                preferred_format = format_info
-                break
+        params = {}
+        params.update(kwargs)
         
-        if not preferred_format:
-            raise RedBeeAPIError("Aucun format de streaming supporté trouvé")
-        
-        return PlaybackInfo(
-            asset_id=asset_id,
-            format_type=preferred_format["format"].lower(),
-            media_locator=preferred_format["mediaLocator"],
-            drm_license_url=preferred_format.get("drmLicenseUrl"),
-            subtitle_tracks=response.get("subtitleTracks", []),
-            audio_tracks=response.get("audioTracks", []),
-            quality_levels=response.get("qualityLevels", []),
-            expires_at=response.get("expiresAt"),
-            restrictions=response.get("contractRestrictions", {})
-        )
-    
+        return await self._make_request("GET", url, params=params, use_auth=False)
+
     # =====================================
     # User Entitlements
     # =====================================
