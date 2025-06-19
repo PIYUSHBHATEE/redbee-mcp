@@ -17,7 +17,7 @@ async def get_account_purchases(
     sessionToken: str,
     includeExpired: Optional[bool] = False
 ) -> List[TextContent]:
-    """Récupère tous les achats d'un compte utilisateur"""
+    """Retrieves all purchases for a user account"""
     
     try:
         async with RedBeeClient(config) as client:
@@ -36,18 +36,18 @@ async def get_account_purchases(
             
             return [TextContent(
                 type="text",
-                text=f"Achats du compte Red Bee Media:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
+                text=f"Red Bee Media Account Purchases:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
             )]
             
     except RedBeeAPIError as e:
         return [TextContent(
             type="text",
-            text=f"Erreur récupération achats Red Bee: {e.message} (Status: {e.status_code})"
+            text=f"Red Bee purchases retrieval error: {e.message} (Status: {e.status_code})"
         )]
     except Exception as e:
         return [TextContent(
             type="text",
-            text=f"Erreur lors de la récupération des achats: {str(e)}"
+            text=f"Error during purchases retrieval: {str(e)}"
         )]
 
 
@@ -55,7 +55,7 @@ async def get_account_transactions(
     config: RedBeeConfig,
     sessionToken: str
 ) -> List[TextContent]:
-    """Récupère l'historique des transactions d'un compte"""
+    """Retrieves transaction history for an account"""
     
     try:
         async with RedBeeClient(config) as client:
@@ -69,18 +69,18 @@ async def get_account_transactions(
             
             return [TextContent(
                 type="text",
-                text=f"Transactions du compte Red Bee Media:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
+                text=f"Red Bee Media Account Transactions:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
             )]
             
     except RedBeeAPIError as e:
         return [TextContent(
             type="text",
-            text=f"Erreur récupération transactions Red Bee: {e.message} (Status: {e.status_code})"
+            text=f"Red Bee transactions retrieval error: {e.message} (Status: {e.status_code})"
         )]
     except Exception as e:
         return [TextContent(
             type="text",
-            text=f"Erreur lors de la récupération des transactions: {str(e)}"
+            text=f"Error during transactions retrieval: {str(e)}"
         )]
 
 
@@ -88,7 +88,7 @@ async def get_offerings(
     config: RedBeeConfig,
     sessionToken: Optional[str] = None
 ) -> List[TextContent]:
-    """Récupère toutes les offres disponibles"""
+    """Retrieves all available offerings"""
     
     try:
         async with RedBeeClient(config) as client:
@@ -105,18 +105,18 @@ async def get_offerings(
             
             return [TextContent(
                 type="text",
-                text=f"Offres disponibles Red Bee Media:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
+                text=f"Red Bee Media Available Offerings:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
             )]
             
     except RedBeeAPIError as e:
         return [TextContent(
             type="text",
-            text=f"Erreur récupération offres Red Bee: {e.message} (Status: {e.status_code})"
+            text=f"Red Bee offerings retrieval error: {e.message} (Status: {e.status_code})"
         )]
     except Exception as e:
         return [TextContent(
             type="text",
-            text=f"Erreur lors de la récupération des offres: {str(e)}"
+            text=f"Error during offerings retrieval: {str(e)}"
         )]
 
 
@@ -126,7 +126,7 @@ async def purchase_product_offering(
     offeringId: str,
     paymentMethod: Optional[str] = None
 ) -> List[TextContent]:
-    """Achète une offre de produit"""
+    """Purchases a product offering"""
     
     try:
         async with RedBeeClient(config) as client:
@@ -148,18 +148,18 @@ async def purchase_product_offering(
             
             return [TextContent(
                 type="text",
-                text=f"Achat effectué Red Bee Media:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
+                text=f"Red Bee Media Purchase Completed:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
             )]
             
     except RedBeeAPIError as e:
         return [TextContent(
             type="text",
-            text=f"Erreur achat Red Bee: {e.message} (Status: {e.status_code})"
+            text=f"Red Bee purchase error: {e.message} (Status: {e.status_code})"
         )]
     except Exception as e:
         return [TextContent(
             type="text",
-            text=f"Erreur lors de l'achat: {str(e)}"
+            text=f"Error during purchase: {str(e)}"
         )]
 
 
@@ -168,7 +168,7 @@ async def cancel_purchase_subscription(
     sessionToken: str,
     purchaseId: str
 ) -> List[TextContent]:
-    """Annule un abonnement acheté"""
+    """Cancels a purchased subscription"""
     
     try:
         async with RedBeeClient(config) as client:
@@ -182,18 +182,18 @@ async def cancel_purchase_subscription(
             
             return [TextContent(
                 type="text",
-                text=f"Annulation abonnement Red Bee Media:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
+                text=f"Red Bee Media Subscription Cancellation:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
             )]
             
     except RedBeeAPIError as e:
         return [TextContent(
             type="text",
-            text=f"Erreur annulation Red Bee: {e.message} (Status: {e.status_code})"
+            text=f"Red Bee cancellation error: {e.message} (Status: {e.status_code})"
         )]
     except Exception as e:
         return [TextContent(
             type="text",
-            text=f"Erreur lors de l'annulation: {str(e)}"
+            text=f"Error during cancellation: {str(e)}"
         )]
 
 
@@ -201,7 +201,7 @@ async def get_stored_payment_methods(
     config: RedBeeConfig,
     sessionToken: str
 ) -> List[TextContent]:
-    """Récupère les méthodes de paiement enregistrées"""
+    """Retrieves stored payment methods"""
     
     try:
         async with RedBeeClient(config) as client:
@@ -215,18 +215,18 @@ async def get_stored_payment_methods(
             
             return [TextContent(
                 type="text",
-                text=f"Méthodes de paiement Red Bee Media:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
+                text=f"Red Bee Media Payment Methods:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
             )]
             
     except RedBeeAPIError as e:
         return [TextContent(
             type="text",
-            text=f"Erreur récupération méthodes paiement Red Bee: {e.message} (Status: {e.status_code})"
+            text=f"Red Bee payment methods retrieval error: {e.message} (Status: {e.status_code})"
         )]
     except Exception as e:
         return [TextContent(
             type="text",
-            text=f"Erreur lors de la récupération des méthodes de paiement: {str(e)}"
+            text=f"Error during payment methods retrieval: {str(e)}"
         )]
 
 
@@ -235,7 +235,7 @@ async def add_payment_method(
     sessionToken: str,
     paymentMethodData: Dict[str, Any]
 ) -> List[TextContent]:
-    """Ajoute une nouvelle méthode de paiement"""
+    """Adds a new payment method"""
     
     try:
         async with RedBeeClient(config) as client:
@@ -250,18 +250,18 @@ async def add_payment_method(
             
             return [TextContent(
                 type="text",
-                text=f"Méthode de paiement ajoutée Red Bee Media:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
+                text=f"Red Bee Media Payment Method Added:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
             )]
             
     except RedBeeAPIError as e:
         return [TextContent(
             type="text",
-            text=f"Erreur ajout méthode paiement Red Bee: {e.message} (Status: {e.status_code})"
+            text=f"Red Bee payment method addition error: {e.message} (Status: {e.status_code})"
         )]
     except Exception as e:
         return [TextContent(
             type="text",
-            text=f"Erreur lors de l'ajout de la méthode de paiement: {str(e)}"
+            text=f"Error during payment method addition: {str(e)}"
         )]
 
 
@@ -269,17 +269,17 @@ async def add_payment_method(
 PURCHASES_TOOLS = [
     Tool(
         name="get_account_purchases",
-        description="Récupère tous les achats d'un compte utilisateur",
+        description="Retrieves all purchases for a user account",
         inputSchema={
             "type": "object",
             "properties": {
                 "sessionToken": {
                     "type": "string",
-                    "description": "Token de session utilisateur"
+                    "description": "User session token"
                 },
                 "includeExpired": {
                     "type": "boolean",
-                    "description": "Inclure les achats expirés",
+                    "description": "Include expired purchases",
                     "default": False
                 }
             },
@@ -288,13 +288,13 @@ PURCHASES_TOOLS = [
     ),
     Tool(
         name="get_account_transactions",
-        description="Récupère l'historique des transactions d'un compte",
+        description="Retrieves transaction history for an account",
         inputSchema={
             "type": "object",
             "properties": {
                 "sessionToken": {
                     "type": "string",
-                    "description": "Token de session utilisateur"
+                    "description": "User session token"
                 }
             },
             "required": ["sessionToken"]
@@ -302,13 +302,13 @@ PURCHASES_TOOLS = [
     ),
     Tool(
         name="get_offerings",
-        description="Récupère toutes les offres disponibles",
+        description="Retrieves all available offerings",
         inputSchema={
             "type": "object",
             "properties": {
                 "sessionToken": {
                     "type": "string",
-                    "description": "Token de session utilisateur (optionnel)"
+                    "description": "User session token (optional)"
                 }
             },
             "required": []
@@ -316,21 +316,21 @@ PURCHASES_TOOLS = [
     ),
     Tool(
         name="purchase_product_offering",
-        description="Achète une offre de produit",
+        description="Purchases a product offering",
         inputSchema={
             "type": "object",
             "properties": {
                 "sessionToken": {
                     "type": "string",
-                    "description": "Token de session utilisateur"
+                    "description": "User session token"
                 },
                 "offeringId": {
                     "type": "string",
-                    "description": "ID de l'offre à acheter"
+                    "description": "Offering ID to purchase"
                 },
                 "paymentMethod": {
                     "type": "string",
-                    "description": "Méthode de paiement (optionnel)"
+                    "description": "Payment method (optional)"
                 }
             },
             "required": ["sessionToken", "offeringId"]
@@ -338,17 +338,17 @@ PURCHASES_TOOLS = [
     ),
     Tool(
         name="cancel_purchase_subscription",
-        description="Annule un abonnement acheté",
+        description="Cancels a purchased subscription",
         inputSchema={
             "type": "object",
             "properties": {
                 "sessionToken": {
                     "type": "string",
-                    "description": "Token de session utilisateur"
+                    "description": "User session token"
                 },
                 "purchaseId": {
                     "type": "string",
-                    "description": "ID de l'achat à annuler"
+                    "description": "Purchase ID to cancel"
                 }
             },
             "required": ["sessionToken", "purchaseId"]
@@ -356,13 +356,13 @@ PURCHASES_TOOLS = [
     ),
     Tool(
         name="get_stored_payment_methods",
-        description="Récupère les méthodes de paiement enregistrées",
+        description="Retrieves stored payment methods",
         inputSchema={
             "type": "object",
             "properties": {
                 "sessionToken": {
                     "type": "string",
-                    "description": "Token de session utilisateur"
+                    "description": "User session token"
                 }
             },
             "required": ["sessionToken"]
@@ -370,17 +370,17 @@ PURCHASES_TOOLS = [
     ),
     Tool(
         name="add_payment_method",
-        description="Ajoute une nouvelle méthode de paiement",
+        description="Adds a new payment method",
         inputSchema={
             "type": "object",
             "properties": {
                 "sessionToken": {
                     "type": "string",
-                    "description": "Token de session utilisateur"
+                    "description": "User session token"
                 },
                 "paymentMethodData": {
                     "type": "object",
-                    "description": "Données de la méthode de paiement"
+                    "description": "Payment method data"
                 }
             },
             "required": ["sessionToken", "paymentMethodData"]

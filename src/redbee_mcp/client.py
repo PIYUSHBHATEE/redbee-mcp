@@ -359,7 +359,7 @@ class RedBeeClient:
     # =====================================
     
     async def get_user_entitlements(self, user_id: str) -> List[UserEntitlement]:
-        """Récupère les droits d'un utilisateur"""
+        """Retrieves user entitlements"""
         
         response = await self._make_request(
             "GET",
@@ -389,7 +389,7 @@ class RedBeeClient:
         start_date: Optional[str] = None, 
         end_date: Optional[str] = None
     ) -> ContentAnalytics:
-        """Récupère les analytics d'un contenu"""
+        """Retrieves content analytics"""
         
         params = {
             "assetId": asset_id
@@ -426,7 +426,7 @@ class RedBeeClient:
         page: int = 1, 
         per_page: int = 20
     ) -> List[ViewingHistory]:
-        """Récupère l'historique de visionnage d'un utilisateur"""
+        """Retrieves user viewing history"""
         
         params = {
             "userId": user_id,
@@ -462,7 +462,7 @@ class RedBeeClient:
         start_date: Optional[str] = None, 
         end_date: Optional[str] = None
     ) -> PlatformMetrics:
-        """Récupère les métriques globales de la plateforme"""
+        """Retrieves platform global metrics"""
         
         params = {}
         if start_date:
@@ -493,7 +493,7 @@ class RedBeeClient:
     # =====================================
     
     async def get_business_unit_info(self) -> BusinessUnitInfo:
-        """Récupère les informations de configuration de l'unité commerciale"""
+        """Retrieves business unit configuration information"""
         
         response = await self._make_request(
             "GET",

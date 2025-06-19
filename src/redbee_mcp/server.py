@@ -31,7 +31,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 def get_config() -> RedBeeConfig:
-    """Récupère la configuration Red Bee à partir des variables d'environnement"""
+    """Retrieves Red Bee configuration from environment variables"""
     return RedBeeConfig(
         customer=os.getenv("REDBEE_CUSTOMER", ""),
         business_unit=os.getenv("REDBEE_BUSINESS_UNIT", ""),
@@ -45,35 +45,35 @@ def get_config() -> RedBeeConfig:
     )
 
 async def get_available_tools() -> List[Tool]:
-    """Liste tous les outils MCP disponibles pour Red Bee Media"""
+    """Lists all available MCP tools for Red Bee Media"""
     tools = []
     
-    # Ajouter tous les outils des différents modules
+    # Add all tools from different modules
     tools.extend(AUTH_TOOLS)
     tools.extend(CONTENT_TOOLS)
     tools.extend(USER_MANAGEMENT_TOOLS)
     tools.extend(PURCHASES_TOOLS)
     tools.extend(SYSTEM_TOOLS)
     
-    logger.info(f"Red Bee MCP: {len(tools)} outils disponibles")
+    logger.info(f"Red Bee MCP: {len(tools)} available tools")
     return tools
 
 async def execute_tool(name: str, arguments: dict) -> List[TextContent]:
-    """Gestionnaire principal pour les appels d'outils MCP"""
+    """Main handler for MCP tool calls"""
     
     config = get_config()
     
-    # Validation de la configuration minimale seulement lors de l'appel d'outil
+    # Minimal configuration validation only when calling a tool
     if not config.customer or not config.business_unit:
         return [TextContent(
             type="text",
-            text="❌ Configuration manquante: REDBEE_CUSTOMER et REDBEE_BUSINESS_UNIT sont requis.\n\nVeuillez configurer :\n- REDBEE_CUSTOMER (ex: TV5MONDE)\n- REDBEE_BUSINESS_UNIT (ex: TV5MONDEplus)\n\nDans votre mcp.json ou comme variables d'environnement."
+            text="❌ Missing configuration: REDBEE_CUSTOMER and REDBEE_BUSINESS_UNIT are required.\n\nPlease configure:\n- REDBEE_CUSTOMER (e.g., CUSTOMER_NAME)\n- REDBEE_BUSINESS_UNIT (e.g., BUSINESS_UNIT_NAME)\n\nIn your mcp.json or as environment variables."
         )]
     
     try:
-        logger.info(f"Red Bee MCP: Appel de l'outil '{name}' avec arguments: {arguments}")
+        logger.info(f"Red Bee MCP: Calling tool '{name}' with arguments: {arguments}")
         
-        # === OUTILS D'AUTHENTIFICATION ===
+        # === AUTHENTICATION TOOLS ===
         if name == "login_user":
             return await login_user(
                 config=config,
@@ -97,7 +97,7 @@ async def execute_tool(name: str, arguments: dict) -> List[TextContent]:
                 session_token=arguments["session_token"]
             )
         
-        # === OUTILS DE CONTENU ===
+        # === CONTENT TOOLS ===
         elif name == "search_content":
             return await search_content(
                 config=config,
@@ -174,7 +174,7 @@ async def execute_tool(name: str, arguments: dict) -> List[TextContent]:
                 sort=args.get("sort")
             )
         
-        # === OUTILS GESTION UTILISATEUR ===
+        # === USER MANAGEMENT TOOLS ===
         elif name == "signup_user":
             return await signup_user(
                 config=config,
@@ -229,7 +229,7 @@ async def execute_tool(name: str, arguments: dict) -> List[TextContent]:
                 preferences=arguments["preferences"]
             )
         
-        # === OUTILS ACHATS ET TRANSACTIONS ===
+        # === PURCHASES TOOLS ===
         elif name == "get_account_purchases":
             return await get_account_purchases(
                 config=config,
@@ -277,7 +277,7 @@ async def execute_tool(name: str, arguments: dict) -> List[TextContent]:
                 paymentMethodData=arguments["paymentMethodData"]
             )
         
-        # === OUTILS SYSTÈME ===
+        # === SYSTEM TOOLS ===
         elif name == "get_system_config":
             return await get_system_config_impl(config=config)
         
@@ -309,14 +309,14 @@ async def execute_tool(name: str, arguments: dict) -> List[TextContent]:
         else:
             return [TextContent(
                 type="text",
-                text=f"Outil non reconnu: {name}"
+                text=f"Unknown tool: {name}"
             )]
             
     except Exception as e:
-        logger.error(f"Erreur lors de l'exécution de l'outil {name}: {str(e)}")
+        logger.error(f"Error executing tool {name}: {str(e)}")
         return [TextContent(
             type="text",
-            text=f"Erreur lors de l'exécution de l'outil {name}: {str(e)}"
+            text=f"Error executing tool {name}: {str(e)}"
         )]
 
 # Création du serveur MCP
@@ -324,29 +324,29 @@ server = Server("redbee-mcp")
 
 @server.list_tools()
 async def handle_list_tools() -> List[Tool]:
-    """Handler pour lister les outils disponibles"""
+    """Handler to list available tools"""
     return await get_available_tools()
 
 @server.call_tool()
 async def handle_call_tool(name: str, arguments: dict) -> List[TextContent]:
-    """Handler pour appeler un outil"""
+    """Handler to call a tool"""
     try:
         result = await execute_tool(name, arguments or {})
         return result
     except Exception as e:
-        logger.error(f"Erreur lors de l'appel de l'outil {name}: {str(e)}")
+        logger.error(f"Error calling tool {name}: {str(e)}")
         return [TextContent(
             type="text",
-            text=f"Erreur: {str(e)}"
+            text=f"Error: {str(e)}"
         )]
 
 async def main():
-    """Point d'entrée principal du serveur MCP"""
-    # Pas de log de démarrage pour éviter la pollution de stdout en mode MCP
+    """Main entry point for the MCP server"""
+    # No startup logs to avoid stdout pollution in MCP mode
     
-    # Le serveur démarre toujours, la validation se fait lors de l'appel des outils
+    # Server always starts, validation happens when tools are called
     
-    # Lancer le serveur MCP
+    # Start the MCP server
     from mcp.server.stdio import stdio_server
     async with stdio_server() as (read_stream, write_stream):
         await server.run(

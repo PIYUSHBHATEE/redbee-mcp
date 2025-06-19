@@ -19,7 +19,7 @@ async def get_public_asset_details(
     onlyPublished: Optional[bool] = True,
     fieldSet: Optional[str] = "ALL"
 ) -> List[TextContent]:
-    """Récupère les détails d'un asset via l'endpoint public (sans authentification)"""
+    """Retrieves asset details via public endpoint (without authentication)"""
     
     try:
         import aiohttp
@@ -40,19 +40,19 @@ async def get_public_asset_details(
                     result = await response.json()
                     return [TextContent(
                         type="text",
-                        text=f"Détails de l'asset Red Bee Media (Public):\n{json.dumps(result, indent=2, ensure_ascii=False)}"
+                        text=f"Red Bee Media Asset Details (Public):\n{json.dumps(result, indent=2, ensure_ascii=False)}"
                     )]
                 else:
                     error_text = await response.text()
                     return [TextContent(
                         type="text",
-                        text=f"Erreur API Red Bee (Status {response.status}): {error_text}"
+                        text=f"Red Bee API Error (Status {response.status}): {error_text}"
                     )]
                     
     except Exception as e:
         return [TextContent(
             type="text",
-            text=f"Erreur lors de la récupération: {str(e)}"
+            text=f"Error during retrieval: {str(e)}"
         )]
 
 
@@ -64,16 +64,16 @@ async def search_content(
     sort: Optional[str] = None,
     includeUserData: Optional[bool] = True
 ) -> List[TextContent]:
-    """Recherche du contenu via l'endpoint v3 searchV3 (SANS authentification)"""
+    """Search content via v3 searchV3 endpoint (WITHOUT authentication)"""
     
     try:
         import aiohttp
         
         # Utiliser l'endpoint v3 public selon la documentation
         if query:
-            url = f"https://exposure.api.redbee.live/v3/customer/TV5MONDE/businessunit/TV5MONDEplus/content/search/query/{query}"
+            url = f"https://exposure.api.redbee.live/v3/customer/{config.customer}/businessunit/{config.business_unit}/content/search/query/{query}"
         else:
-            url = f"https://exposure.api.redbee.live/v3/customer/TV5MONDE/businessunit/TV5MONDEplus/content/search/query/*"
+            url = f"https://exposure.api.redbee.live/v3/customer/{config.customer}/businessunit/{config.business_unit}/content/search/query/*"
         
         params = {
             "pageSize": pageSize,
@@ -94,19 +94,19 @@ async def search_content(
                     result = await response.json()
                     return [TextContent(
                         type="text",
-                        text=f"Résultats de recherche Red Bee Media:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
+                        text=f"Red Bee Media Search Results:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
                     )]
                 else:
                     error_text = await response.text()
                     return [TextContent(
                         type="text",
-                        text=f"Erreur API Red Bee (Status {response.status}): {error_text}"
+                        text=f"Red Bee API Error (Status {response.status}): {error_text}"
                     )]
             
     except Exception as e:
         return [TextContent(
             type="text",
-            text=f"Erreur lors de la recherche: {str(e)}"
+            text=f"Error during search: {str(e)}"
         )]
 
 
@@ -115,7 +115,7 @@ async def get_asset_details(
     assetId: str,
     includeUserData: Optional[bool] = True
 ) -> List[TextContent]:
-    """Récupère les détails complets d'un asset via l'endpoint v1"""
+    """Retrieves complete asset details via v1 endpoint"""
     
     try:
         async with RedBeeClient(config) as client:
@@ -136,18 +136,18 @@ async def get_asset_details(
             
             return [TextContent(
                 type="text",
-                text=f"Détails de l'asset Red Bee Media:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
+                text=f"Red Bee Media Asset Details:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
             )]
             
     except RedBeeAPIError as e:
         return [TextContent(
             type="text",
-            text=f"Erreur API Red Bee: {e.message} (Status: {e.status_code})"
+            text=f"Red Bee API Error: {e.message} (Status: {e.status_code})"
         )]
     except Exception as e:
         return [TextContent(
             type="text",
-            text=f"Erreur lors de la récupération: {str(e)}"
+            text=f"Error during retrieval: {str(e)}"
         )]
 
 
@@ -156,13 +156,13 @@ async def get_playback_info(
     assetId: str,
     sessionToken: str
 ) -> List[TextContent]:
-    """Récupère les informations de lecture via l'endpoint v2 play"""
+    """Retrieves playback information via v2 play endpoint"""
     
     try:
         async with RedBeeClient(config) as client:
             client.session_token = sessionToken
             
-            # Utiliser l'endpoint v2 play selon la documentation
+            # Use v2 play endpoint according to documentation
             result = await client._make_request(
                 "POST",
                 f"/v2/customer/{config.customer}/businessunit/{config.business_unit}/entitlement/{assetId}/play",
@@ -172,18 +172,18 @@ async def get_playback_info(
             
             return [TextContent(
                 type="text",
-                text=f"Informations de lecture Red Bee Media:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
+                text=f"Red Bee Media Playback Information:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
             )]
             
     except RedBeeAPIError as e:
         return [TextContent(
             type="text",
-            text=f"Erreur API Red Bee: {e.message} (Status: {e.status_code})"
+            text=f"Red Bee API Error: {e.message} (Status: {e.status_code})"
         )]
     except Exception as e:
         return [TextContent(
             type="text",
-            text=f"Erreur lors de la récupération des infos de lecture: {str(e)}"
+            text=f"Error during playback info retrieval: {str(e)}"
         )]
 
 
@@ -192,13 +192,13 @@ async def search_assets_autocomplete(
     query: str,
     fieldSet: Optional[str] = "ALL"
 ) -> List[TextContent]:
-    """Autocomplétion de recherche d'assets via l'endpoint v3 (SANS authentification)"""
+    """Asset search autocompletion via v3 endpoint (WITHOUT authentication)"""
     
     try:
         import aiohttp
         
         # Utiliser l'endpoint v3 public selon la documentation
-        url = f"https://exposure.api.redbee.live/v3/customer/TV5MONDE/businessunit/TV5MONDEplus/content/search/asset/title/autocomplete/{query}"
+        url = f"https://exposure.api.redbee.live/v3/customer/{config.customer}/businessunit/{config.business_unit}/content/search/asset/title/autocomplete/{query}"
         
         params = {
             "locales": ["fr"],
@@ -215,19 +215,19 @@ async def search_assets_autocomplete(
                     result = await response.json()
                     return [TextContent(
                         type="text",
-                        text=f"Autocomplétion assets Red Bee Media:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
+                        text=f"Red Bee Media Asset Autocompletion:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
                     )]
                 else:
                     error_text = await response.text()
                     return [TextContent(
                         type="text",
-                        text=f"Erreur API Red Bee (Status {response.status}): {error_text}"
+                        text=f"Red Bee API Error (Status {response.status}): {error_text}"
                     )]
             
     except Exception as e:
         return [TextContent(
             type="text",
-            text=f"Erreur lors de l'autocomplétion: {str(e)}"
+            text=f"Error during autocompletion: {str(e)}"
         )]
 
 
@@ -238,14 +238,14 @@ async def get_epg_for_channel(
     toDate: Optional[str] = None,
     includeUserData: Optional[bool] = True
 ) -> List[TextContent]:
-    """Récupère le guide électronique des programmes (EPG) via l'endpoint v2"""
+    """Retrieves Electronic Program Guide (EPG) via v2 endpoint"""
     
     try:
         async with RedBeeClient(config) as client:
             if not client.session_token:
                 await client.authenticate_anonymous()
             
-            # Utiliser l'endpoint v2 EPG selon la documentation
+            # Use v2 EPG endpoint according to documentation
             if fromDate:
                 endpoint = f"/v2/customer/{config.customer}/businessunit/{config.business_unit}/epg/{channelId}/date/{fromDate}"
             else:
@@ -262,18 +262,18 @@ async def get_epg_for_channel(
             
             return [TextContent(
                 type="text",
-                text=f"EPG Red Bee Media:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
+                text=f"Red Bee Media EPG:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
             )]
             
     except RedBeeAPIError as e:
         return [TextContent(
             type="text",
-            text=f"Erreur API Red Bee: {e.message} (Status: {e.status_code})"
+            text=f"Red Bee API Error: {e.message} (Status: {e.status_code})"
         )]
     except Exception as e:
         return [TextContent(
             type="text",
-            text=f"Erreur lors de la récupération EPG: {str(e)}"
+            text=f"Error during EPG retrieval: {str(e)}"
         )]
 
 
@@ -282,7 +282,7 @@ async def get_episodes_for_season(
     seasonId: str,
     includeUserData: Optional[bool] = True
 ) -> List[TextContent]:
-    """Récupère tous les épisodes d'une saison via l'endpoint v1"""
+    """Retrieves all episodes for a season via v1 endpoint"""
     
     try:
         async with RedBeeClient(config) as client:
@@ -302,18 +302,18 @@ async def get_episodes_for_season(
             
             return [TextContent(
                 type="text",
-                text=f"Épisodes de la saison Red Bee Media:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
+                text=f"Red Bee Media Season Episodes:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
             )]
             
     except RedBeeAPIError as e:
         return [TextContent(
             type="text",
-            text=f"Erreur API Red Bee: {e.message} (Status: {e.status_code})"
+            text=f"Red Bee API Error: {e.message} (Status: {e.status_code})"
         )]
     except Exception as e:
         return [TextContent(
             type="text",
-            text=f"Erreur lors de la récupération des épisodes: {str(e)}"
+            text=f"Error during episodes retrieval: {str(e)}"
         )]
 
 
@@ -323,13 +323,13 @@ async def get_assets_by_tag(
     assetType: Optional[str] = "MOVIE",
     onlyPublished: Optional[bool] = True
 ) -> List[TextContent]:
-    """Récupère les tags uniques d'assets pour un type donné (SANS authentification)"""
+    """Retrieves unique asset tags for a given type (WITHOUT authentication)"""
     
     try:
         import aiohttp
         
-        # Utiliser l'endpoint v1 public selon la documentation
-        url = f"https://exposure.api.redbee.live/v1/customer/TV5MONDE/businessunit/TV5MONDEplus/tag/asset"
+        # Use public v1 endpoint according to documentation
+        url = f"https://exposure.api.redbee.live/v1/customer/{config.customer}/businessunit/{config.business_unit}/tag/asset"
         
         params = {
             "tagType": tagType,
@@ -349,19 +349,19 @@ async def get_assets_by_tag(
                     result = await response.json()
                     return [TextContent(
                         type="text",
-                        text=f"Tags {tagType} pour les assets Red Bee Media:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
+                        text=f"Red Bee Media {tagType} Tags for Assets:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
                     )]
                 else:
                     error_text = await response.text()
                     return [TextContent(
                         type="text",
-                        text=f"Erreur API Red Bee (Status {response.status}): {error_text}"
+                        text=f"Red Bee API Error (Status {response.status}): {error_text}"
                     )]
             
     except Exception as e:
         return [TextContent(
             type="text",
-            text=f"Erreur lors de la récupération des tags: {str(e)}"
+            text=f"Error during tags retrieval: {str(e)}"
         )]
 
 
@@ -392,13 +392,13 @@ async def list_assets(
     includeFields: Optional[str] = None,
     excludeFields: Optional[str] = None
 ) -> List[TextContent]:
-    """Liste des assets via l'endpoint principal (SANS authentification)"""
+    """List assets via main endpoint (WITHOUT authentication)"""
     
     try:
         import aiohttp
         
-        # Utiliser l'endpoint v1 principal selon la documentation
-        url = f"https://exposure.api.redbee.live/v1/customer/TV5MONDE/businessunit/TV5MONDEplus/content/asset"
+        # Use main v1 endpoint according to documentation
+        url = f"https://exposure.api.redbee.live/v1/customer/{config.customer}/businessunit/{config.business_unit}/content/asset"
         
         params = {
             "pageSize": pageSize,
@@ -407,7 +407,7 @@ async def list_assets(
             "fieldSet": fieldSet
         }
         
-                    # Add optional parameters only if provided
+        # Add optional parameters only if provided
         if assetType:
             params["assetType"] = assetType
         if assetTypes:
@@ -459,17 +459,17 @@ async def list_assets(
                     data = await response.json()
                     
                     # Format the response
-                    result = f"Liste des assets Red Bee Media:\n"
-                    result += f"Page {data.get('pageNumber', 1)} sur {data.get('pageSize', pageSize)} éléments\n"
+                    result = f"Red Bee Media Assets List:\n"
+                    result += f"Page {data.get('pageNumber', 1)} of {data.get('pageSize', pageSize)} items\n"
                     result += f"Total: {data.get('totalCount', 0)} assets\n\n"
                     
                     items = data.get('items', [])
                     for i, item in enumerate(items[:pageSize], 1):
-                        result += f"{i}. **{item.get('localized', [{}])[0].get('title', 'Titre non disponible')}**\n"
+                        result += f"{i}. **{item.get('localized', [{}])[0].get('title', 'Title not available')}**\n"
                         result += f"   - ID: {item.get('assetId', 'N/A')}\n"
                         result += f"   - Type: {item.get('type', 'N/A')}\n"
                         if item.get('productionYear'):
-                            result += f"   - Année: {item.get('productionYear')}\n"
+                            result += f"   - Year: {item.get('productionYear')}\n"
                         if item.get('localized', [{}])[0].get('description'):
                             desc = item.get('localized', [{}])[0].get('description', '')[:100]
                             result += f"   - Description: {desc}...\n"
@@ -478,40 +478,40 @@ async def list_assets(
                     return [TextContent(type="text", text=result)]
                 else:
                     error_text = await response.text()
-                    return [TextContent(type="text", text=f"Erreur lors de la récupération des assets: {response.status} - {error_text}")]
+                    return [TextContent(type="text", text=f"Error retrieving assets: {response.status} - {error_text}")]
                     
     except Exception as e:
-        return [TextContent(type="text", text=f"Erreur lors de la récupération des assets: {str(e)}")]
+        return [TextContent(type="text", text=f"Error retrieving assets: {str(e)}")]
 
 
 # MCP Tool definitions
 CONTENT_TOOLS = [
     Tool(
         name="get_public_asset_details",
-        description="Récupère les détails d'un asset via l'endpoint public (sans authentification)",
+        description="Retrieves asset details via public endpoint (without authentication)",
         inputSchema={
             "type": "object",
             "properties": {
                 "customer": {
                     "type": "string",
-                    "description": "Customer ID (ex: TV5MONDE)"
+                    "description": "Customer ID (e.g., CUSTOMER_NAME)"
                 },
                 "business_unit": {
                     "type": "string", 
-                    "description": "Business Unit ID (ex: TV5MONDEplus)"
+                    "description": "Business Unit ID (e.g., BUSINESS_UNIT_NAME)"
                 },
                 "assetId": {
                     "type": "string",
-                    "description": "ID unique de l'asset"
+                    "description": "Unique asset ID"
                 },
                 "onlyPublished": {
                     "type": "boolean",
-                    "description": "Uniquement les assets publiés",
+                    "description": "Only published assets",
                     "default": True
                 },
                 "fieldSet": {
                     "type": "string",
-                    "description": "Ensemble de champs à retourner",
+                    "description": "Set of fields to return",
                     "default": "ALL"
                 }
             },
@@ -520,31 +520,31 @@ CONTENT_TOOLS = [
     ),
     Tool(
         name="search_content",
-        description="Recherche du contenu dans la plateforme Red Bee par titre, genre, ou autres critères",
+        description="Search content in the Red Bee platform by title, genre, or other criteria",
         inputSchema={
             "type": "object",
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "Terme de recherche (titre, acteur, réalisateur, etc.)"
+                    "description": "Search term (title, actor, director, etc.)"
                 },
                 "pageSize": {
                     "type": "integer",
-                    "description": "Nombre de résultats par page",
+                    "description": "Number of results per page",
                     "default": 50
                 },
                 "pageNumber": {
                     "type": "integer",
-                    "description": "Numéro de page pour la pagination",
+                    "description": "Page number for pagination",
                     "default": 1
                 },
                 "sort": {
                     "type": "string",
-                    "description": "Critère de tri"
+                    "description": "Sort criteria"
                 },
                 "includeUserData": {
                     "type": "boolean",
-                    "description": "Inclure les données utilisateur",
+                    "description": "Include user data",
                     "default": True
                 }
             },
@@ -553,17 +553,17 @@ CONTENT_TOOLS = [
     ),
     Tool(
         name="get_asset_details",
-        description="Récupère les détails complets d'un asset spécifique par son ID",
+        description="Retrieves complete details of a specific asset by its ID",
         inputSchema={
             "type": "object",
             "properties": {
                 "assetId": {
                     "type": "string",
-                    "description": "ID unique de l'asset"
+                    "description": "Unique asset ID"
                 },
                 "includeUserData": {
                     "type": "boolean",
-                    "description": "Inclure les données utilisateur",
+                    "description": "Include user data",
                     "default": True
                 }
             },
@@ -572,17 +572,17 @@ CONTENT_TOOLS = [
     ),
     Tool(
         name="get_playback_info",
-        description="Récupère les informations de lecture (URL de stream, DRM, sous-titres) pour un asset",
+        description="Retrieves playback information (stream URL, DRM, subtitles) for an asset",
         inputSchema={
             "type": "object",
             "properties": {
                 "assetId": {
                     "type": "string",
-                    "description": "ID unique de l'asset"
+                    "description": "Unique asset ID"
                 },
                 "sessionToken": {
                     "type": "string",
-                    "description": "Token de session utilisateur"
+                    "description": "User session token"
                 }
             },
             "required": ["assetId", "sessionToken"]
@@ -590,17 +590,17 @@ CONTENT_TOOLS = [
     ),
     Tool(
         name="search_assets_autocomplete",
-        description="Autocomplétion de recherche d'assets",
+        description="Asset search autocompletion",
         inputSchema={
             "type": "object",
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "Terme de recherche pour l'autocomplétion"
+                    "description": "Search term for autocompletion"
                 },
                 "fieldSet": {
                     "type": "string",
-                    "description": "Ensemble de champs à retourner",
+                    "description": "Set of fields to return",
                     "default": "ALL"
                 }
             },
@@ -609,25 +609,25 @@ CONTENT_TOOLS = [
     ),
     Tool(
         name="get_epg_for_channel",
-        description="Récupère le guide électronique des programmes (EPG) pour un canal spécifique",
+        description="Retrieves Electronic Program Guide (EPG) for a specific channel",
         inputSchema={
             "type": "object",
             "properties": {
                 "channelId": {
                     "type": "string",
-                    "description": "ID unique du canal"
+                    "description": "Unique channel ID"
                 },
                 "fromDate": {
                     "type": "string",
-                    "description": "Date de début (format ISO)"
+                    "description": "Start date (ISO format)"
                 },
                 "toDate": {
                     "type": "string", 
-                    "description": "Date de fin (format ISO)"
+                    "description": "End date (ISO format)"
                 },
                 "includeUserData": {
                     "type": "boolean",
-                    "description": "Inclure les données utilisateur",
+                    "description": "Include user data",
                     "default": True
                 }
             },
@@ -636,17 +636,17 @@ CONTENT_TOOLS = [
     ),
     Tool(
         name="get_episodes_for_season",
-        description="Récupère tous les épisodes d'une saison",
+        description="Retrieves all episodes for a season",
         inputSchema={
             "type": "object",
             "properties": {
                 "seasonId": {
                     "type": "string",
-                    "description": "ID unique de la saison"
+                    "description": "Unique season ID"
                 },
                 "includeUserData": {
                     "type": "boolean",
-                    "description": "Inclure les données utilisateur",
+                    "description": "Include user data",
                     "default": True
                 }
             },
@@ -655,23 +655,23 @@ CONTENT_TOOLS = [
     ),
     Tool(
         name="get_assets_by_tag",
-        description="Récupère les tags uniques d'assets pour un type donné (ex: origine pays pour les films)",
+        description="Retrieves unique asset tags for a given type (e.g., country origin for movies)",
         inputSchema={
             "type": "object",
             "properties": {
                 "tagType": {
                     "type": "string",
-                    "description": "Type de tag à rechercher (ex: 'origin' pour pays d'origine)"
+                    "description": "Tag type to search for (e.g., 'origin' for country origin)"
                 },
                 "assetType": {
                     "type": "string",
-                    "description": "Type d'asset à filtrer",
+                    "description": "Asset type to filter",
                     "default": "MOVIE",
                     "enum": ["MOVIE", "TV_SHOW", "EPISODE", "CLIP", "TV_CHANNEL", "AD", "LIVE_EVENT", "COLLECTION", "PODCAST", "PODCAST_EPISODE", "EVENT", "OTHER"]
                 },
                 "onlyPublished": {
                     "type": "boolean",
-                    "description": "Uniquement les assets publiés",
+                    "description": "Only published assets",
                     "default": True
                 }
             },
@@ -680,58 +680,58 @@ CONTENT_TOOLS = [
     ),
     Tool(
         name="list_assets",
-        description="Liste des assets via l'endpoint principal (SANS authentification)",
+        description="List assets via main endpoint (WITHOUT authentication)",
         inputSchema={
             "type": "object",
             "properties": {
                 "assetType": {
                     "type": "string",
-                    "description": "Type d'asset à filtrer"
+                    "description": "Asset type to filter"
                 },
                 "assetTypes": {
                     "type": "array",
                     "items": {
                         "type": "string"
                     },
-                    "description": "Types d'assets à filtrer"
+                    "description": "Asset types to filter"
                 },
                 "sort": {
                     "type": "string",
-                    "description": "Critère de tri"
+                    "description": "Sort criteria"
                 },
                 "query": {
                     "type": "string",
-                    "description": "Terme de recherche"
+                    "description": "Search term"
                 },
                 "assetIds": {
                     "type": "array",
                     "items": {
                         "type": "string"
                     },
-                    "description": "IDs des assets à filtrer"
+                    "description": "Asset IDs to filter"
                 },
                 "parentalRatings": {
                     "type": "string",
-                    "description": "Évaluation parentale"
+                    "description": "Parental rating"
                 },
                 "pageSize": {
                     "type": "integer",
-                    "description": "Nombre de résultats par page",
+                    "description": "Number of results per page",
                     "default": 50
                 },
                 "pageNumber": {
                     "type": "integer",
-                    "description": "Numéro de page pour la pagination",
+                    "description": "Page number for pagination",
                     "default": 1
                 },
                 "onlyPublished": {
                     "type": "boolean",
-                    "description": "Uniquement les assets publiés",
+                    "description": "Only published assets",
                     "default": True
                 },
                 "playableWithinHours": {
                     "type": "integer",
-                    "description": "Durée jouable en heures"
+                    "description": "Playable duration in hours"
                 },
                 "service": {
                     "type": "string",
@@ -739,59 +739,59 @@ CONTENT_TOOLS = [
                 },
                 "allowedCountry": {
                     "type": "string",
-                    "description": "Pays autorisé"
+                    "description": "Allowed country"
                 },
                 "deviceType": {
                     "type": "string",
-                    "description": "Type d'appareil"
+                    "description": "Device type"
                 },
                 "deviceQuery": {
                     "type": "string",
-                    "description": "Requête d'appareil"
+                    "description": "Device query"
                 },
                 "publicationQuery": {
                     "type": "string",
-                    "description": "Requête de publication"
+                    "description": "Publication query"
                 },
                 "products": {
                     "type": "array",
                     "items": {
                         "type": "string"
                     },
-                    "description": "Produits"
+                    "description": "Products"
                 },
                 "missingFieldsFilter": {
                     "type": "string",
-                    "description": "Filtre de champs manquants"
+                    "description": "Missing fields filter"
                 },
                 "programsOnChannelIds": {
                     "type": "string",
-                    "description": "IDs des programmes sur le canal"
+                    "description": "Program IDs on channel"
                 },
                 "includeTvShow": {
                     "type": "boolean",
-                    "description": "Inclure les émissions de télévision"
+                    "description": "Include TV shows"
                 },
                 "publicationStartsWithinDays": {
                     "type": "integer",
-                    "description": "Jours avant publication"
+                    "description": "Days before publication"
                 },
                 "publicationEndsWithinDays": {
                     "type": "integer",
-                    "description": "Jours après publication"
+                    "description": "Days after publication"
                 },
                 "fieldSet": {
                     "type": "string",
-                    "description": "Ensemble de champs à retourner",
+                    "description": "Set of fields to return",
                     "default": "PARTIAL"
                 },
                 "includeFields": {
                     "type": "string",
-                    "description": "Champs à inclure"
+                    "description": "Fields to include"
                 },
                 "excludeFields": {
                     "type": "string",
-                    "description": "Champs à exclure"
+                    "description": "Fields to exclude"
                 }
             },
             "required": []

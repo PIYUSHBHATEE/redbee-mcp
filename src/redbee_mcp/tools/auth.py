@@ -19,7 +19,7 @@ async def login_user(
     password: str,
     remember_me: Optional[bool] = False
 ) -> List[TextContent]:
-    """Authentifie un utilisateur avec ses identifiants"""
+    """Authenticates a user with their credentials"""
     
     try:
         async with RedBeeClient(config) as client:
@@ -30,34 +30,34 @@ async def login_user(
                 "session_token": auth_response.session_token,
                 "device_id": auth_response.device_id,
                 "expires_at": auth_response.expires_at.isoformat() if auth_response.expires_at else None,
-                "message": "Authentification réussie"
+                "message": "Authentication successful"
             }
             
             return [TextContent(
                 type="text",
-                text=f"Authentification Red Bee Media:\n{json.dumps(response, indent=2, ensure_ascii=False)}"
+                text=f"Red Bee Media Authentication:\n{json.dumps(response, indent=2, ensure_ascii=False)}"
             )]
             
     except RedBeeAPIError as e:
         return [TextContent(
             type="text",
-            text=f"Erreur d'authentification Red Bee: {e.message} (Status: {e.status_code})"
+            text=f"Red Bee authentication error: {e.message} (Status: {e.status_code})"
         )]
     except Exception as e:
         return [TextContent(
             type="text",
-            text=f"Erreur lors de l'authentification: {str(e)}"
+            text=f"Error during authentication: {str(e)}"
         )]
 
 
 async def create_anonymous_session(
     config: RedBeeConfig
 ) -> List[TextContent]:
-    """Crée une session anonyme via l'endpoint v2"""
+    """Creates an anonymous session via v2 endpoint"""
     
     try:
         async with RedBeeClient(config) as client:
-            # Utiliser l'endpoint v2 correct selon la documentation
+            # Use the correct v2 endpoint according to documentation
             result = await client._make_request(
                 "POST",
                 f"/v2/customer/{config.customer}/businessunit/{config.business_unit}/auth/anonymous",
@@ -76,23 +76,23 @@ async def create_anonymous_session(
                 "device_id": result.get("deviceId"),
                 "expires_at": result.get("expiresAt"),
                 "session_type": "anonymous",
-                "message": "Session anonyme créée"
+                "message": "Anonymous session created"
             }
             
             return [TextContent(
                 type="text",
-                text=f"Session anonyme Red Bee Media:\n{json.dumps(response, indent=2, ensure_ascii=False)}"
+                text=f"Red Bee Media Anonymous Session:\n{json.dumps(response, indent=2, ensure_ascii=False)}"
             )]
             
     except RedBeeAPIError as e:
         return [TextContent(
             type="text",
-            text=f"Erreur création session anonyme Red Bee: {e.message} (Status: {e.status_code})"
+            text=f"Red Bee anonymous session creation error: {e.message} (Status: {e.status_code})"
         )]
     except Exception as e:
         return [TextContent(
             type="text",
-            text=f"Erreur lors de la création de session anonyme: {str(e)}"
+            text=f"Error during anonymous session creation: {str(e)}"
         )]
 
 
@@ -100,13 +100,13 @@ async def validate_session_token(
     config: RedBeeConfig,
     session_token: str
 ) -> List[TextContent]:
-    """Valide un token de session via l'endpoint v2"""
+    """Validates a session token via v2 endpoint"""
     
     try:
         async with RedBeeClient(config) as client:
             client.session_token = session_token
             
-            # Utiliser l'endpoint v2 correct selon la documentation
+            # Use the correct v2 endpoint according to documentation
             result = await client._make_request(
                 "GET",
                 f"/v2/customer/{config.customer}/businessunit/{config.business_unit}/auth/session",
@@ -117,23 +117,23 @@ async def validate_session_token(
                 "valid": True,
                 "session_token": session_token,
                 "validation_result": result,
-                "message": "Token de session valide"
+                "message": "Session token is valid"
             }
             
             return [TextContent(
                 type="text",
-                text=f"Validation token Red Bee Media:\n{json.dumps(response, indent=2, ensure_ascii=False)}"
+                text=f"Red Bee Media Token Validation:\n{json.dumps(response, indent=2, ensure_ascii=False)}"
             )]
             
     except RedBeeAPIError as e:
         return [TextContent(
             type="text",
-            text=f"Token invalide Red Bee: {e.message} (Status: {e.status_code})"
+            text=f"Red Bee invalid token: {e.message} (Status: {e.status_code})"
         )]
     except Exception as e:
         return [TextContent(
             type="text",
-            text=f"Erreur lors de la validation: {str(e)}"
+            text=f"Error during validation: {str(e)}"
         )]
 
 
@@ -141,13 +141,13 @@ async def logout_user(
     config: RedBeeConfig,
     session_token: str
 ) -> List[TextContent]:
-    """Déconnecte un utilisateur via l'endpoint v2"""
+    """Logs out a user via v2 endpoint"""
     
     try:
         async with RedBeeClient(config) as client:
             client.session_token = session_token
             
-            # Utiliser l'endpoint v2 correct selon la documentation
+            # Use the correct v2 endpoint according to documentation
             await client._make_request(
                 "DELETE",
                 f"/v2/customer/{config.customer}/businessunit/{config.business_unit}/auth/session/delete",
@@ -156,23 +156,23 @@ async def logout_user(
             
             response = {
                 "success": True,
-                "message": "Déconnexion réussie"
+                "message": "Logout successful"
             }
             
             return [TextContent(
                 type="text",
-                text=f"Déconnexion Red Bee Media:\n{json.dumps(response, indent=2, ensure_ascii=False)}"
+                text=f"Red Bee Media Logout:\n{json.dumps(response, indent=2, ensure_ascii=False)}"
             )]
             
     except RedBeeAPIError as e:
         return [TextContent(
             type="text",
-            text=f"Erreur déconnexion Red Bee: {e.message} (Status: {e.status_code})"
+            text=f"Red Bee logout error: {e.message} (Status: {e.status_code})"
         )]
     except Exception as e:
         return [TextContent(
             type="text",
-            text=f"Erreur lors de la déconnexion: {str(e)}"
+            text=f"Error during logout: {str(e)}"
         )]
 
 
@@ -180,21 +180,21 @@ async def logout_user(
 AUTH_TOOLS = [
     Tool(
         name="login_user",
-        description="Authentifie un utilisateur avec ses identifiants et retourne un token de session",
+        description="Authenticates a user with their credentials and returns a session token",
         inputSchema={
             "type": "object",
             "properties": {
                 "username": {
                     "type": "string",
-                    "description": "Nom d'utilisateur ou email"
+                    "description": "Username or email"
                 },
                 "password": {
                     "type": "string",
-                    "description": "Mot de passe de l'utilisateur"
+                    "description": "User password"
                 },
                 "remember_me": {
                     "type": "boolean",
-                    "description": "Se souvenir de la session (optionnel)",
+                    "description": "Remember the session (optional)",
                     "default": False
                 }
             },
@@ -203,7 +203,7 @@ AUTH_TOOLS = [
     ),
     Tool(
         name="create_anonymous_session",
-        description="Crée une session anonyme pour accéder au contenu public",
+        description="Creates an anonymous session to access public content",
         inputSchema={
             "type": "object",
             "properties": {
@@ -217,13 +217,13 @@ AUTH_TOOLS = [
     ),
     Tool(
         name="validate_session_token",
-        description="Valide un token de session existant",
+        description="Validates an existing session token",
         inputSchema={
             "type": "object",
             "properties": {
                 "session_token": {
                     "type": "string",
-                    "description": "Token de session à valider"
+                    "description": "Session token to validate"
                 }
             },
             "required": ["session_token"]
@@ -231,13 +231,13 @@ AUTH_TOOLS = [
     ),
     Tool(
         name="logout_user",
-        description="Déconnecte un utilisateur et invalide sa session",
+        description="Logs out a user and invalidates their session",
         inputSchema={
             "type": "object",
             "properties": {
                 "session_token": {
                     "type": "string",
-                    "description": "Token de session à invalider"
+                    "description": "Session token to invalidate"
                 }
             },
             "required": ["session_token"]

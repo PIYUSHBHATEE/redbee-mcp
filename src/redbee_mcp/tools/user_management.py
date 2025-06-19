@@ -20,7 +20,7 @@ async def signup_user(
     firstName: Optional[str] = None,
     lastName: Optional[str] = None
 ) -> List[TextContent]:
-    """Crée un nouveau compte utilisateur"""
+    """Creates a new user account"""
     
     try:
         async with RedBeeClient(config) as client:
@@ -45,18 +45,18 @@ async def signup_user(
             
             return [TextContent(
                 type="text",
-                text=f"Inscription utilisateur Red Bee Media:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
+                text=f"Red Bee Media User Registration:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
             )]
             
     except RedBeeAPIError as e:
         return [TextContent(
             type="text",
-            text=f"Erreur inscription Red Bee: {e.message} (Status: {e.status_code})"
+            text=f"Red Bee registration error: {e.message} (Status: {e.status_code})"
         )]
     except Exception as e:
         return [TextContent(
             type="text",
-            text=f"Erreur lors de l'inscription: {str(e)}"
+            text=f"Error during registration: {str(e)}"
         )]
 
 
@@ -66,7 +66,7 @@ async def change_user_password(
     oldPassword: str,
     newPassword: str
 ) -> List[TextContent]:
-    """Change le mot de passe d'un utilisateur"""
+    """Changes a user's password"""
     
     try:
         async with RedBeeClient(config) as client:
@@ -86,18 +86,18 @@ async def change_user_password(
             
             return [TextContent(
                 type="text",
-                text=f"Changement de mot de passe Red Bee Media:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
+                text=f"Red Bee Media Password Change:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
             )]
             
     except RedBeeAPIError as e:
         return [TextContent(
             type="text",
-            text=f"Erreur changement mot de passe Red Bee: {e.message} (Status: {e.status_code})"
+            text=f"Red Bee password change error: {e.message} (Status: {e.status_code})"
         )]
     except Exception as e:
         return [TextContent(
             type="text",
-            text=f"Erreur lors du changement de mot de passe: {str(e)}"
+            text=f"Error during password change: {str(e)}"
         )]
 
 
@@ -105,7 +105,7 @@ async def get_user_profiles(
     config: RedBeeConfig,
     sessionToken: str
 ) -> List[TextContent]:
-    """Récupère tous les profils d'un utilisateur"""
+    """Retrieves all profiles for a user"""
     
     try:
         async with RedBeeClient(config) as client:
@@ -119,18 +119,18 @@ async def get_user_profiles(
             
             return [TextContent(
                 type="text",
-                text=f"Profils utilisateur Red Bee Media:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
+                text=f"Red Bee Media User Profiles:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
             )]
             
     except RedBeeAPIError as e:
         return [TextContent(
             type="text",
-            text=f"Erreur récupération profils Red Bee: {e.message} (Status: {e.status_code})"
+            text=f"Red Bee profiles retrieval error: {e.message} (Status: {e.status_code})"
         )]
     except Exception as e:
         return [TextContent(
             type="text",
-            text=f"Erreur lors de la récupération des profils: {str(e)}"
+            text=f"Error during profiles retrieval: {str(e)}"
         )]
 
 
@@ -141,7 +141,7 @@ async def add_user_profile(
     dateOfBirth: Optional[str] = None,
     avatar: Optional[str] = None
 ) -> List[TextContent]:
-    """Ajoute un nouveau profil utilisateur"""
+    """Adds a new user profile"""
     
     try:
         async with RedBeeClient(config) as client:
@@ -165,18 +165,18 @@ async def add_user_profile(
             
             return [TextContent(
                 type="text",
-                text=f"Nouveau profil utilisateur Red Bee Media:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
+                text=f"Red Bee Media New User Profile:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
             )]
             
     except RedBeeAPIError as e:
         return [TextContent(
             type="text",
-            text=f"Erreur création profil Red Bee: {e.message} (Status: {e.status_code})"
+            text=f"Red Bee profile creation error: {e.message} (Status: {e.status_code})"
         )]
     except Exception as e:
         return [TextContent(
             type="text",
-            text=f"Erreur lors de la création du profil: {str(e)}"
+            text=f"Error during profile creation: {str(e)}"
         )]
 
 
@@ -185,7 +185,7 @@ async def select_user_profile(
     sessionToken: str,
     profileId: str
 ) -> List[TextContent]:
-    """Sélectionne un profil utilisateur actif"""
+    """Selects an active user profile"""
     
     try:
         async with RedBeeClient(config) as client:
@@ -199,18 +199,18 @@ async def select_user_profile(
             
             return [TextContent(
                 type="text",
-                text=f"Sélection profil utilisateur Red Bee Media:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
+                text=f"Red Bee Media User Profile Selection:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
             )]
             
     except RedBeeAPIError as e:
         return [TextContent(
             type="text",
-            text=f"Erreur sélection profil Red Bee: {e.message} (Status: {e.status_code})"
+            text=f"Red Bee profile selection error: {e.message} (Status: {e.status_code})"
         )]
     except Exception as e:
         return [TextContent(
             type="text",
-            text=f"Erreur lors de la sélection du profil: {str(e)}"
+            text=f"Error during profile selection: {str(e)}"
         )]
 
 
@@ -218,7 +218,7 @@ async def get_user_preferences(
     config: RedBeeConfig,
     sessionToken: str
 ) -> List[TextContent]:
-    """Récupère les préférences utilisateur"""
+    """Retrieves user preferences"""
     
     try:
         async with RedBeeClient(config) as client:
@@ -232,18 +232,18 @@ async def get_user_preferences(
             
             return [TextContent(
                 type="text",
-                text=f"Préférences utilisateur Red Bee Media:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
+                text=f"Red Bee Media User Preferences:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
             )]
             
     except RedBeeAPIError as e:
         return [TextContent(
             type="text",
-            text=f"Erreur récupération préférences Red Bee: {e.message} (Status: {e.status_code})"
+            text=f"Red Bee preferences retrieval error: {e.message} (Status: {e.status_code})"
         )]
     except Exception as e:
         return [TextContent(
             type="text",
-            text=f"Erreur lors de la récupération des préférences: {str(e)}"
+            text=f"Error during preferences retrieval: {str(e)}"
         )]
 
 
@@ -252,7 +252,7 @@ async def set_user_preferences(
     sessionToken: str,
     preferences: Dict[str, Any]
 ) -> List[TextContent]:
-    """Définit les préférences utilisateur"""
+    """Sets user preferences"""
     
     try:
         async with RedBeeClient(config) as client:
@@ -267,18 +267,18 @@ async def set_user_preferences(
             
             return [TextContent(
                 type="text",
-                text=f"Mise à jour préférences Red Bee Media:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
+                text=f"Red Bee Media Preferences Update:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
             )]
             
     except RedBeeAPIError as e:
         return [TextContent(
             type="text",
-            text=f"Erreur mise à jour préférences Red Bee: {e.message} (Status: {e.status_code})"
+            text=f"Red Bee preferences update error: {e.message} (Status: {e.status_code})"
         )]
     except Exception as e:
         return [TextContent(
             type="text",
-            text=f"Erreur lors de la mise à jour des préférences: {str(e)}"
+            text=f"Error during preferences update: {str(e)}"
         )]
 
 
@@ -286,29 +286,29 @@ async def set_user_preferences(
 USER_MANAGEMENT_TOOLS = [
     Tool(
         name="signup_user",
-        description="Crée un nouveau compte utilisateur",
+        description="Creates a new user account",
         inputSchema={
             "type": "object",
             "properties": {
                 "username": {
                     "type": "string",
-                    "description": "Nom d'utilisateur"
+                    "description": "Username"
                 },
                 "password": {
                     "type": "string",
-                    "description": "Mot de passe"
+                    "description": "Password"
                 },
                 "email": {
                     "type": "string",
-                    "description": "Adresse email (optionnel)"
+                    "description": "Email address (optional)"
                 },
                 "firstName": {
                     "type": "string",
-                    "description": "Prénom (optionnel)"
+                    "description": "First name (optional)"
                 },
                 "lastName": {
                     "type": "string",
-                    "description": "Nom de famille (optionnel)"
+                    "description": "Last name (optional)"
                 }
             },
             "required": ["username", "password"]
@@ -316,21 +316,21 @@ USER_MANAGEMENT_TOOLS = [
     ),
     Tool(
         name="change_user_password",
-        description="Change le mot de passe d'un utilisateur",
+        description="Changes a user's password",
         inputSchema={
             "type": "object",
             "properties": {
                 "sessionToken": {
                     "type": "string",
-                    "description": "Token de session utilisateur"
+                    "description": "User session token"
                 },
                 "oldPassword": {
                     "type": "string",
-                    "description": "Ancien mot de passe"
+                    "description": "Old password"
                 },
                 "newPassword": {
                     "type": "string",
-                    "description": "Nouveau mot de passe"
+                    "description": "New password"
                 }
             },
             "required": ["sessionToken", "oldPassword", "newPassword"]
@@ -338,13 +338,13 @@ USER_MANAGEMENT_TOOLS = [
     ),
     Tool(
         name="get_user_profiles",
-        description="Récupère tous les profils d'un utilisateur",
+        description="Retrieves all profiles for a user",
         inputSchema={
             "type": "object",
             "properties": {
                 "sessionToken": {
                     "type": "string",
-                    "description": "Token de session utilisateur"
+                    "description": "User session token"
                 }
             },
             "required": ["sessionToken"]
@@ -352,25 +352,25 @@ USER_MANAGEMENT_TOOLS = [
     ),
     Tool(
         name="add_user_profile",
-        description="Ajoute un nouveau profil utilisateur",
+        description="Adds a new user profile",
         inputSchema={
             "type": "object",
             "properties": {
                 "sessionToken": {
                     "type": "string",
-                    "description": "Token de session utilisateur"
+                    "description": "User session token"
                 },
                 "profileName": {
                     "type": "string",
-                    "description": "Nom du profil"
+                    "description": "Profile name"
                 },
                 "dateOfBirth": {
                     "type": "string",
-                    "description": "Date de naissance (optionnel)"
+                    "description": "Date of birth (optional)"
                 },
                 "avatar": {
                     "type": "string",
-                    "description": "URL de l'avatar (optionnel)"
+                    "description": "Avatar URL (optional)"
                 }
             },
             "required": ["sessionToken", "profileName"]
@@ -378,17 +378,17 @@ USER_MANAGEMENT_TOOLS = [
     ),
     Tool(
         name="select_user_profile",
-        description="Sélectionne un profil utilisateur actif",
+        description="Selects an active user profile",
         inputSchema={
             "type": "object",
             "properties": {
                 "sessionToken": {
                     "type": "string",
-                    "description": "Token de session utilisateur"
+                    "description": "User session token"
                 },
                 "profileId": {
                     "type": "string",
-                    "description": "ID du profil à sélectionner"
+                    "description": "Profile ID to select"
                 }
             },
             "required": ["sessionToken", "profileId"]
@@ -396,13 +396,13 @@ USER_MANAGEMENT_TOOLS = [
     ),
     Tool(
         name="get_user_preferences",
-        description="Récupère les préférences utilisateur",
+        description="Retrieves user preferences",
         inputSchema={
             "type": "object",
             "properties": {
                 "sessionToken": {
                     "type": "string",
-                    "description": "Token de session utilisateur"
+                    "description": "User session token"
                 }
             },
             "required": ["sessionToken"]
@@ -410,17 +410,17 @@ USER_MANAGEMENT_TOOLS = [
     ),
     Tool(
         name="set_user_preferences",
-        description="Définit les préférences utilisateur",
+        description="Sets user preferences",
         inputSchema={
             "type": "object",
             "properties": {
                 "sessionToken": {
                     "type": "string",
-                    "description": "Token de session utilisateur"
+                    "description": "User session token"
                 },
                 "preferences": {
                     "type": "object",
-                    "description": "Objet contenant les préférences à définir"
+                    "description": "Object containing preferences to set"
                 }
             },
             "required": ["sessionToken", "preferences"]

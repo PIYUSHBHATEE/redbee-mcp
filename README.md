@@ -40,8 +40,8 @@ Add to your Claude Desktop MCP configuration file:
       "command": "uvx",
       "args": ["redbee-mcp"],
       "env": {
-        "REDBEE_CUSTOMER": "your_customer_id",
-        "REDBEE_BUSINESS_UNIT": "your_business_unit"
+        "REDBEE_CUSTOMER": "CUSTOMER_NAME",
+        "REDBEE_BUSINESS_UNIT": "BUSINESS_UNIT_NAME"
       }
     }
   }
@@ -59,8 +59,8 @@ Add to your Cursor MCP settings:
       "command": "uvx",
       "args": ["redbee-mcp"],
       "env": {
-        "REDBEE_CUSTOMER": "your_customer_id",
-        "REDBEE_BUSINESS_UNIT": "your_business_unit"
+        "REDBEE_CUSTOMER": "CUSTOMER_NAME",
+        "REDBEE_BUSINESS_UNIT": "BUSINESS_UNIT_NAME"
       }
     }
   }
@@ -75,8 +75,8 @@ Add to your Cursor MCP settings:
     "redbee-mcp": {
       "command": "redbee-mcp",
       "env": {
-        "REDBEE_CUSTOMER": "your_customer_id",
-        "REDBEE_BUSINESS_UNIT": "your_business_unit"
+        "REDBEE_CUSTOMER": "CUSTOMER_NAME",
+        "REDBEE_BUSINESS_UNIT": "BUSINESS_UNIT_NAME"
       }
     }
   }
@@ -87,8 +87,8 @@ Add to your Cursor MCP settings:
 
 | Variable | Required | Description | Example |
 |----------|----------|-------------|---------|
-| `REDBEE_CUSTOMER` | ✅ Yes | Red Bee customer identifier | `TV5MONDE` |
-| `REDBEE_BUSINESS_UNIT` | ✅ Yes | Red Bee business unit | `TV5MONDEplus` |
+| `REDBEE_CUSTOMER` | ✅ Yes | Red Bee customer identifier | `CUSTOMER_NAME` |
+| `REDBEE_BUSINESS_UNIT` | ✅ Yes | Red Bee business unit | `BUSINESS_UNIT_NAME` |
 | `REDBEE_EXPOSURE_BASE_URL` | ❌ No | API base URL | `https://exposure.api.redbee.live` |
 | `REDBEE_USERNAME` | ❌ No | Username for authentication | `user@example.com` |
 | `REDBEE_PASSWORD` | ❌ No | Password for authentication | `password123` |
@@ -106,8 +106,8 @@ Add to your Cursor MCP settings:
       "command": "uvx",
       "args": ["redbee-mcp"],
       "env": {
-        "REDBEE_CUSTOMER": "TV5MONDE",
-        "REDBEE_BUSINESS_UNIT": "TV5MONDEplus",
+        "REDBEE_CUSTOMER": "YOUR_CUSTOMER_NAME",
+        "REDBEE_BUSINESS_UNIT": "YOUR_BUSINESS_UNIT_NAME",
         "REDBEE_USERNAME": "your_username",
         "REDBEE_PASSWORD": "your_password"
       }
@@ -173,7 +173,7 @@ uvx redbee-mcp
 redbee-mcp
 
 # With environment variables
-REDBEE_CUSTOMER=TV5MONDE REDBEE_BUSINESS_UNIT=TV5MONDEplus uvx redbee-mcp
+REDBEE_CUSTOMER=CUSTOMER_NAME REDBEE_BUSINESS_UNIT=BUSINESS_UNIT_NAME uvx redbee-mcp
 ```
 
 ### Test MCP protocol manually
