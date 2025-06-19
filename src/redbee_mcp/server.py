@@ -14,7 +14,7 @@ from mcp.server.models import InitializationOptions
 from mcp.types import CallToolRequest, CallToolResult, ListToolsRequest, Tool, TextContent, ServerCapabilities
 
 from .models import RedBeeConfig
-from .tools.content import CONTENT_TOOLS, search_content, get_asset_details, get_playback_info, search_assets_autocomplete, get_epg_for_channel, get_episodes_for_season, get_public_asset_details, get_assets_by_tag, list_assets
+from .tools.content import CONTENT_TOOLS, search_content, get_asset_details, get_playback_info, search_assets_autocomplete, get_epg_for_channel, get_episodes_for_season, get_public_asset_details, get_assets_by_tag, list_assets, search_participants, search_multi_v3, get_asset_collection_entries, get_asset_thumbnail, get_seasons_for_series
 from .tools.auth import AUTH_TOOLS, login_user, create_anonymous_session, validate_session_token, logout_user
 from .tools.user_management import USER_MANAGEMENT_TOOLS, signup_user, change_user_password, get_user_profiles, add_user_profile, select_user_profile, get_user_preferences, set_user_preferences
 from .tools.purchases import PURCHASES_TOOLS, get_account_purchases, get_account_transactions, get_offerings, purchase_product_offering, cancel_purchase_subscription, get_stored_payment_methods, add_payment_method
@@ -172,6 +172,56 @@ async def execute_tool(name: str, arguments: dict) -> List[TextContent]:
                 pageNumber=args.get("pageNumber", 1),
                 pageSize=args.get("pageSize", 50),
                 sort=args.get("sort")
+            )
+        
+        elif name == "search_participants":
+            return await search_participants(
+                config=config,
+                query=arguments["query"],
+                pageSize=arguments.get("pageSize", 50),
+                pageNumber=arguments.get("pageNumber", 1),
+                onlyPublished=arguments.get("onlyPublished", True)
+            )
+        
+        elif name == "search_multi_v3":
+            return await search_multi_v3(
+                config=config,
+                query=arguments["query"],
+                types=arguments.get("types", "MOVIE,TV_SHOW"),
+                locales=arguments.get("locales"),
+                tags=arguments.get("tags"),
+                schemes=arguments.get("schemes"),
+                parentalRatings=arguments.get("parentalRatings"),
+                pageSize=arguments.get("pageSize", 50),
+                pageNumber=arguments.get("pageNumber", 1),
+                onlyPublished=arguments.get("onlyPublished", True)
+            )
+        
+        elif name == "get_asset_collection_entries":
+            return await get_asset_collection_entries(
+                config=config,
+                assetId=arguments["assetId"],
+                pageSize=arguments.get("pageSize", 50),
+                pageNumber=arguments.get("pageNumber", 1),
+                onlyPublished=arguments.get("onlyPublished", True),
+                fieldSet=arguments.get("fieldSet", "ALL")
+            )
+        
+        elif name == "get_asset_thumbnail":
+            return await get_asset_thumbnail(
+                config=config,
+                assetId=arguments["assetId"],
+                time=arguments.get("time")
+            )
+        
+        elif name == "get_seasons_for_series":
+            return await get_seasons_for_series(
+                config=config,
+                assetId=arguments["assetId"],
+                pageSize=arguments.get("pageSize", 50),
+                pageNumber=arguments.get("pageNumber", 1),
+                onlyPublished=arguments.get("onlyPublished", True),
+                fieldSet=arguments.get("fieldSet", "ALL")
             )
         
         # === USER MANAGEMENT TOOLS ===

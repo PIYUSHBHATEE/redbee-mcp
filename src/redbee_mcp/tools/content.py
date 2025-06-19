@@ -484,6 +484,259 @@ async def list_assets(
         return [TextContent(type="text", text=f"Error retrieving assets: {str(e)}")]
 
 
+async def search_participants(
+    config: RedBeeConfig,
+    query: str,
+    pageSize: Optional[int] = 50,
+    pageNumber: Optional[int] = 1,
+    onlyPublished: Optional[bool] = True
+) -> List[TextContent]:
+    """Search for participants (actors, directors, etc.) in content"""
+    
+    try:
+        import aiohttp
+        
+        # Use v3 multi search endpoint to search for participants
+        url = f"https://exposure.api.redbee.live/v3/customer/{config.customer}/businessunit/{config.business_unit}/content/search/query/{query}"
+        
+        params = {
+            "pageSize": pageSize,
+            "pageNumber": pageNumber,
+            "onlyPublished": str(onlyPublished).lower(),
+            "fieldSet": "ALL",
+            "searchParticipants": "true"
+        }
+        
+        headers = {
+            "accept": "application/json;charset=UTF-8"
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, params=params, headers=headers) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    return [TextContent(
+                        type="text",
+                        text=f"Red Bee Media Participant Search Results:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
+                    )]
+                else:
+                    error_text = await response.text()
+                    return [TextContent(
+                        type="text",
+                        text=f"Red Bee API Error (Status {response.status}): {error_text}"
+                    )]
+                    
+    except Exception as e:
+        return [TextContent(
+            type="text",
+            text=f"Error during participant search: {str(e)}"
+        )]
+
+
+async def search_multi_v3(
+    config: RedBeeConfig,
+    query: str,
+    types: Optional[str] = "MOVIE,TV_SHOW",
+    locales: Optional[List[str]] = None,
+    tags: Optional[List[str]] = None,
+    schemes: Optional[List[str]] = None,
+    parentalRatings: Optional[str] = None,
+    pageSize: Optional[int] = 50,
+    pageNumber: Optional[int] = 1,
+    onlyPublished: Optional[bool] = True
+) -> List[TextContent]:
+    """Multi-search V3 for assets, tags, and participants"""
+    
+    try:
+        import aiohttp
+        
+        # Use v3 multi search endpoint
+        url = f"https://exposure.api.redbee.live/v3/customer/{config.customer}/businessunit/{config.business_unit}/content/search/query/{query}"
+        
+        params = {
+            "types": types,
+            "pageSize": pageSize,
+            "pageNumber": pageNumber,
+            "onlyPublished": str(onlyPublished).lower(),
+            "fieldSet": "ALL"
+        }
+        
+        if locales:
+            params["locales"] = locales
+        if tags:
+            params["tags"] = tags
+        if schemes:
+            params["schemes"] = schemes
+        if parentalRatings:
+            params["parentalRatings"] = parentalRatings
+            
+        headers = {
+            "accept": "application/json;charset=UTF-8"
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, params=params, headers=headers) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    return [TextContent(
+                        type="text",
+                        text=f"Red Bee Media Multi-Search V3 Results:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
+                    )]
+                else:
+                    error_text = await response.text()
+                    return [TextContent(
+                        type="text",
+                        text=f"Red Bee API Error (Status {response.status}): {error_text}"
+                    )]
+                    
+    except Exception as e:
+        return [TextContent(
+            type="text",
+            text=f"Error during multi-search: {str(e)}"
+        )]
+
+
+async def get_asset_collection_entries(
+    config: RedBeeConfig,
+    assetId: str,
+    pageSize: Optional[int] = 50,
+    pageNumber: Optional[int] = 1,
+    onlyPublished: Optional[bool] = True,
+    fieldSet: Optional[str] = "ALL"
+) -> List[TextContent]:
+    """Get collection entries for an asset collection"""
+    
+    try:
+        async with RedBeeClient(config) as client:
+            if not client.session_token:
+                await client.authenticate_anonymous()
+            
+            params = {
+                "pageSize": pageSize,
+                "pageNumber": pageNumber,
+                "onlyPublished": onlyPublished,
+                "fieldSet": fieldSet
+            }
+            
+            result = await client._make_request(
+                "GET",
+                f"/v1/customer/{config.customer}/businessunit/{config.business_unit}/content/asset/{assetId}/collectionentries",
+                params=params,
+                include_auth=True
+            )
+            
+            return [TextContent(
+                type="text",
+                text=f"Red Bee Media Collection Entries:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
+            )]
+            
+    except RedBeeAPIError as e:
+        return [TextContent(
+            type="text",
+            text=f"Red Bee API Error: {e.message} (Status: {e.status_code})"
+        )]
+    except Exception as e:
+        return [TextContent(
+            type="text",
+            text=f"Error during collection entries retrieval: {str(e)}"
+        )]
+
+
+async def get_asset_thumbnail(
+    config: RedBeeConfig,
+    assetId: str,
+    time: Optional[str] = None
+) -> List[TextContent]:
+    """Get thumbnail for an asset at a specific time"""
+    
+    try:
+        import aiohttp
+        
+        # Use v1 thumbnail endpoint (returns 307 redirect)
+        url = f"https://exposure.api.redbee.live/v1/customer/{config.customer}/businessunit/{config.business_unit}/content/asset/{assetId}/thumbnail"
+        
+        params = {}
+        if time:
+            params["time"] = time
+            
+        headers = {
+            "accept": "application/json;charset=UTF-8"
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, params=params, headers=headers, allow_redirects=False) as response:
+                if response.status == 307:
+                    thumbnail_url = response.headers.get("Location")
+                    return [TextContent(
+                        type="text",
+                        text=f"Red Bee Media Asset Thumbnail URL:\n{thumbnail_url}"
+                    )]
+                elif response.status == 200:
+                    result = await response.json()
+                    return [TextContent(
+                        type="text",
+                        text=f"Red Bee Media Asset Thumbnail Info:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
+                    )]
+                else:
+                    error_text = await response.text()
+                    return [TextContent(
+                        type="text",
+                        text=f"Red Bee API Error (Status {response.status}): {error_text}"
+                    )]
+                    
+    except Exception as e:
+        return [TextContent(
+            type="text",
+            text=f"Error during thumbnail retrieval: {str(e)}"
+        )]
+
+
+async def get_seasons_for_series(
+    config: RedBeeConfig,
+    assetId: str,
+    pageSize: Optional[int] = 50,
+    pageNumber: Optional[int] = 1,
+    onlyPublished: Optional[bool] = True,
+    fieldSet: Optional[str] = "ALL"
+) -> List[TextContent]:
+    """Get all seasons for a TV series"""
+    
+    try:
+        async with RedBeeClient(config) as client:
+            if not client.session_token:
+                await client.authenticate_anonymous()
+            
+            params = {
+                "pageSize": pageSize,
+                "pageNumber": pageNumber,
+                "onlyPublished": onlyPublished,
+                "fieldSet": fieldSet
+            }
+            
+            result = await client._make_request(
+                "GET",
+                f"/v1/customer/{config.customer}/businessunit/{config.business_unit}/content/asset/{assetId}/season",
+                params=params,
+                include_auth=True
+            )
+            
+            return [TextContent(
+                type="text",
+                text=f"Red Bee Media Seasons for Series:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
+            )]
+            
+    except RedBeeAPIError as e:
+        return [TextContent(
+            type="text",
+            text=f"Red Bee API Error: {e.message} (Status: {e.status_code})"
+        )]
+    except Exception as e:
+        return [TextContent(
+            type="text",
+            text=f"Error during seasons retrieval: {str(e)}"
+        )]
+
+
 # MCP Tool definitions
 CONTENT_TOOLS = [
     Tool(
@@ -795,6 +1048,180 @@ CONTENT_TOOLS = [
                 }
             },
             "required": []
+        }
+    ),
+    Tool(
+        name="search_participants",
+        description="Search for participants (actors, directors, etc.) in content",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Search query for participants"
+                },
+                "pageSize": {
+                    "type": "integer",
+                    "description": "Number of results per page",
+                    "default": 50
+                },
+                "pageNumber": {
+                    "type": "integer",
+                    "description": "Page number for pagination",
+                    "default": 1
+                },
+                "onlyPublished": {
+                    "type": "boolean",
+                    "description": "Only published content",
+                    "default": True
+                }
+            },
+            "required": ["query"]
+        }
+    ),
+    Tool(
+        name="search_multi_v3",
+        description="Multi-search V3 for assets, tags, and participants with advanced filtering",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Search query"
+                },
+                "types": {
+                    "type": "string",
+                    "description": "Asset types to search (comma-separated)",
+                    "default": "MOVIE,TV_SHOW"
+                },
+                "locales": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Locales to search in"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Tags to filter by"
+                },
+                "schemes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Tag schemes to search"
+                },
+                "parentalRatings": {
+                    "type": "string",
+                    "description": "Parental rating filter"
+                },
+                "pageSize": {
+                    "type": "integer",
+                    "description": "Number of results per page",
+                    "default": 50
+                },
+                "pageNumber": {
+                    "type": "integer",
+                    "description": "Page number for pagination",
+                    "default": 1
+                },
+                "onlyPublished": {
+                    "type": "boolean",
+                    "description": "Only published content",
+                    "default": True
+                }
+            },
+            "required": ["query"]
+        }
+    ),
+    Tool(
+        name="get_asset_collection_entries",
+        description="Get collection entries for an asset collection",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "assetId": {
+                    "type": "string",
+                    "description": "Collection asset ID"
+                },
+                "pageSize": {
+                    "type": "integer",
+                    "description": "Number of results per page",
+                    "default": 50
+                },
+                "pageNumber": {
+                    "type": "integer",
+                    "description": "Page number for pagination",
+                    "default": 1
+                },
+                "onlyPublished": {
+                    "type": "boolean",
+                    "description": "Only published assets",
+                    "default": True
+                },
+                "fieldSet": {
+                    "type": "string",
+                    "description": "Set of fields to return",
+                    "default": "ALL"
+                }
+            },
+            "required": ["assetId"]
+        }
+    ),
+    Tool(
+        name="get_asset_thumbnail",
+        description="Get thumbnail URL for an asset at a specific time",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "assetId": {
+                    "type": "string",
+                    "description": "Asset ID to get thumbnail for"
+                },
+                "time": {
+                    "type": "string",
+                    "description": "Time position for thumbnail (ISO format or duration like PT30M20S)"
+                }
+            },
+            "required": ["assetId"]
+        }
+    ),
+    Tool(
+        name="get_seasons_for_series",
+        description="Get all seasons for a TV series",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "assetId": {
+                    "type": "string",
+                    "description": "TV series asset ID"
+                },
+                "pageSize": {
+                    "type": "integer",
+                    "description": "Number of results per page",
+                    "default": 50
+                },
+                "pageNumber": {
+                    "type": "integer",
+                    "description": "Page number for pagination",
+                    "default": 1
+                },
+                "onlyPublished": {
+                    "type": "boolean",
+                    "description": "Only published seasons",
+                    "default": True
+                },
+                "fieldSet": {
+                    "type": "string",
+                    "description": "Set of fields to return",
+                    "default": "ALL"
+                }
+            },
+            "required": ["assetId"]
         }
     )
 ] 
