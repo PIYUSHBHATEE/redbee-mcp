@@ -13,8 +13,7 @@ from ..models import RedBeeConfig
 
 
 async def get_public_asset_details(
-    customer: str,
-    business_unit: str,
+    config: RedBeeConfig,
     assetId: str,
     onlyPublished: Optional[bool] = True,
     fieldSet: Optional[str] = "ALL"
@@ -24,7 +23,7 @@ async def get_public_asset_details(
     try:
         import aiohttp
         
-        url = f"https://exposure.api.redbee.live/v1/customer/{customer}/businessunit/{business_unit}/content/asset/{assetId}"
+        url = f"https://exposure.api.redbee.live/v1/customer/{config.customer}/businessunit/{config.business_unit}/content/asset/{assetId}"
         params = {
             "onlyPublished": str(onlyPublished).lower(),
             "fieldSet": fieldSet
@@ -56,33 +55,72 @@ async def get_public_asset_details(
         )]
 
 
-async def search_content(
+
+async def search_content_v2(
     config: RedBeeConfig,
-    query: Optional[str] = None,
+    query: str,
+    locale: Optional[List[str]] = None,
+    types: Optional[str] = "MOVIE,TV_SHOW",
+    tags: Optional[List[str]] = None,
+    durationLower: Optional[int] = None,
+    durationUpper: Optional[int] = None,
+    subtitles: Optional[str] = None,
+    schemes: Optional[List[str]] = None,
+    parentalRatings: Optional[str] = None,
+    onlyPublished: Optional[bool] = True,
+    allowedCountry: Optional[str] = None,
+    onlyDownloadable: Optional[bool] = None,
     pageSize: Optional[int] = 50,
     pageNumber: Optional[int] = 1,
-    sort: Optional[str] = None,
-    includeUserData: Optional[bool] = True
+    service: Optional[str] = None,
+    fieldSet: Optional[str] = "ALL",
+    includeFields: Optional[str] = None,
+    excludeFields: Optional[str] = None
 ) -> List[TextContent]:
-    """Search content via v3 searchV3 endpoint (WITHOUT authentication)"""
+    """Search V2 - Free text query in selected fields in assets (including descriptions)"""
     
     try:
         import aiohttp
         
-        # Utiliser l'endpoint v3 public selon la documentation
-        if query:
-            url = f"https://exposure.api.redbee.live/v3/customer/{config.customer}/businessunit/{config.business_unit}/content/search/query/{query}"
-        else:
-            url = f"https://exposure.api.redbee.live/v3/customer/{config.customer}/businessunit/{config.business_unit}/content/search/query/*"
+        url = f"https://exposure.api.redbee.live/v2/customer/{config.customer}/businessunit/{config.business_unit}/content/search/query/{query}"
         
         params = {
             "pageSize": pageSize,
-            "onlyPublished": "true",
-            "fieldSet": "ALL"
+            "pageNumber": pageNumber,
+            "onlyPublished": str(onlyPublished).lower(),
+            "fieldSet": fieldSet
         }
         
-        if sort:
-            params["sort"] = sort
+        # Ajouter les paramètres optionnels s'ils sont fournis
+        if locale:
+            for i, loc in enumerate(locale):
+                params[f"locale[{i}]"] = loc
+        if types:
+            params["types"] = types
+        if tags:
+            for i, tag in enumerate(tags):
+                params[f"tags[{i}]"] = tag
+        if durationLower is not None:
+            params["durationLower"] = durationLower
+        if durationUpper is not None:
+            params["durationUpper"] = durationUpper
+        if subtitles:
+            params["subtitles"] = subtitles
+        if schemes:
+            for i, scheme in enumerate(schemes):
+                params[f"schemes[{i}]"] = scheme
+        if parentalRatings:
+            params["parentalRatings"] = parentalRatings
+        if allowedCountry:
+            params["allowedCountry"] = allowedCountry
+        if onlyDownloadable is not None:
+            params["onlyDownloadable"] = str(onlyDownloadable).lower()
+        if service:
+            params["service"] = service
+        if includeFields:
+            params["includeFields"] = includeFields
+        if excludeFields:
+            params["excludeFields"] = excludeFields
             
         headers = {
             "accept": "application/json;charset=UTF-8"
@@ -94,7 +132,7 @@ async def search_content(
                     result = await response.json()
                     return [TextContent(
                         type="text",
-                        text=f"Red Bee Media Search Results:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
+                        text=f"Red Bee Media Search V2 Results:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
                     )]
                 else:
                     error_text = await response.text()
@@ -106,7 +144,7 @@ async def search_content(
     except Exception as e:
         return [TextContent(
             type="text",
-            text=f"Error during search: {str(e)}"
+            text=f"Error during search V2: {str(e)}"
         )]
 
 
@@ -197,12 +235,11 @@ async def search_assets_autocomplete(
     try:
         import aiohttp
         
-        # Utiliser l'endpoint v3 public selon la documentation
+        # Utiliser l'endpoint v3 public selon la documentation avec les variables d'environnement
         url = f"https://exposure.api.redbee.live/v3/customer/{config.customer}/businessunit/{config.business_unit}/content/search/asset/title/autocomplete/{query}"
         
         params = {
-            "locales": ["fr"],
-            "types": "MOVIE,TV_SHOW"
+            "fieldSet": fieldSet
         }
         
         headers = {
@@ -215,7 +252,7 @@ async def search_assets_autocomplete(
                     result = await response.json()
                     return [TextContent(
                         type="text",
-                        text=f"Red Bee Media Asset Autocompletion:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
+                        text=f"Red Bee Media Autocomplete Results:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
                     )]
                 else:
                     error_text = await response.text()
@@ -227,7 +264,7 @@ async def search_assets_autocomplete(
     except Exception as e:
         return [TextContent(
             type="text",
-            text=f"Error during autocompletion: {str(e)}"
+            text=f"Error during autocomplete: {str(e)}"
         )]
 
 
@@ -699,14 +736,6 @@ CONTENT_TOOLS = [
         inputSchema={
             "type": "object",
             "properties": {
-                "customer": {
-                    "type": "string",
-                    "description": "Customer ID (e.g., CUSTOMER_NAME)"
-                },
-                "business_unit": {
-                    "type": "string", 
-                    "description": "Business Unit ID (e.g., BUSINESS_UNIT_NAME)"
-                },
                 "assetId": {
                     "type": "string",
                     "description": "Unique asset ID"
@@ -722,18 +751,74 @@ CONTENT_TOOLS = [
                     "default": "ALL"
                 }
             },
-            "required": ["customer", "business_unit", "assetId"]
+            "required": ["assetId"]
         }
     ),
+
     Tool(
-        name="search_content",
-        description="Search content in the Red Bee platform by title, genre, or other criteria",
+        name="search_content_v2",
+        description="Search V2 - Free text query in selected fields in assets (including descriptions). Perfect for searching actors, directors, or content in descriptions.",
         inputSchema={
             "type": "object",
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "Search term (title, actor, director, etc.)"
+                    "description": "Search term to find in asset fields including descriptions (e.g., actor names, director names, etc.)"
+                },
+                "locale": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Locales to search in (e.g., ['fr', 'en'])"
+                },
+                "types": {
+                    "type": "string",
+                    "description": "Asset types to search (comma-separated)",
+                    "default": "MOVIE,TV_SHOW"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Tags to filter by"
+                },
+                "durationLower": {
+                    "type": "integer",
+                    "description": "Minimum duration in seconds"
+                },
+                "durationUpper": {
+                    "type": "integer",
+                    "description": "Maximum duration in seconds"
+                },
+                "subtitles": {
+                    "type": "string",
+                    "description": "Subtitle language filter"
+                },
+                "schemes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Tag schemes to search"
+                },
+                "parentalRatings": {
+                    "type": "string",
+                    "description": "Parental rating filter (COUNTRY:RATING format)"
+                },
+                "onlyPublished": {
+                    "type": "boolean",
+                    "description": "Only published content",
+                    "default": true
+                },
+                "allowedCountry": {
+                    "type": "string",
+                    "description": "Country filter"
+                },
+                "onlyDownloadable": {
+                    "type": "boolean",
+                    "description": "Only downloadable content"
                 },
                 "pageSize": {
                     "type": "integer",
@@ -745,17 +830,25 @@ CONTENT_TOOLS = [
                     "description": "Page number for pagination",
                     "default": 1
                 },
-                "sort": {
+                "service": {
                     "type": "string",
-                    "description": "Sort criteria"
+                    "description": "Service filter"
                 },
-                "includeUserData": {
-                    "type": "boolean",
-                    "description": "Include user data",
-                    "default": True
+                "fieldSet": {
+                    "type": "string",
+                    "description": "Field set to return",
+                    "default": "ALL"
+                },
+                "includeFields": {
+                    "type": "string",
+                    "description": "Comma separated list of field names to include"
+                },
+                "excludeFields": {
+                    "type": "string",
+                    "description": "Comma separated list of field names to exclude"
                 }
             },
-            "required": []
+            "required": ["query"]
         }
     ),
     Tool(
