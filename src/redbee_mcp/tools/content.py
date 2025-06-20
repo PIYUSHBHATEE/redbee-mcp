@@ -484,53 +484,7 @@ async def list_assets(
         return [TextContent(type="text", text=f"Error retrieving assets: {str(e)}")]
 
 
-async def search_participants(
-    config: RedBeeConfig,
-    query: str,
-    pageSize: Optional[int] = 50,
-    pageNumber: Optional[int] = 1,
-    onlyPublished: Optional[bool] = True
-) -> List[TextContent]:
-    """Search for participants (actors, directors, etc.) in content"""
-    
-    try:
-        import aiohttp
-        
-        # Use v3 multi search endpoint to search for participants
-        url = f"https://exposure.api.redbee.live/v3/customer/{config.customer}/businessunit/{config.business_unit}/content/search/query/{query}"
-        
-        params = {
-            "pageSize": pageSize,
-            "pageNumber": pageNumber,
-            "onlyPublished": str(onlyPublished).lower(),
-            "fieldSet": "ALL",
-            "searchParticipants": "true"
-        }
-        
-        headers = {
-            "accept": "application/json;charset=UTF-8"
-        }
-        
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, params=params, headers=headers) as response:
-                if response.status == 200:
-                    result = await response.json()
-                    return [TextContent(
-                        type="text",
-                        text=f"Red Bee Media Participant Search Results:\n{json.dumps(result, indent=2, ensure_ascii=False)}"
-                    )]
-                else:
-                    error_text = await response.text()
-                    return [TextContent(
-                        type="text",
-                        text=f"Red Bee API Error (Status {response.status}): {error_text}"
-                    )]
-                    
-    except Exception as e:
-        return [TextContent(
-            type="text",
-            text=f"Error during participant search: {str(e)}"
-        )]
+
 
 
 async def search_multi_v3(
@@ -1050,35 +1004,7 @@ CONTENT_TOOLS = [
             "required": []
         }
     ),
-    Tool(
-        name="search_participants",
-        description="Search for participants (actors, directors, etc.) in content",
-        inputSchema={
-            "type": "object",
-            "properties": {
-                "query": {
-                    "type": "string",
-                    "description": "Search query for participants"
-                },
-                "pageSize": {
-                    "type": "integer",
-                    "description": "Number of results per page",
-                    "default": 50
-                },
-                "pageNumber": {
-                    "type": "integer",
-                    "description": "Page number for pagination",
-                    "default": 1
-                },
-                "onlyPublished": {
-                    "type": "boolean",
-                    "description": "Only published content",
-                    "default": True
-                }
-            },
-            "required": ["query"]
-        }
-    ),
+
     Tool(
         name="search_multi_v3",
         description="Multi-search V3 for assets, tags, and participants with advanced filtering",

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "redbee-mcp"
-version = "1.1.0"
+version = "1.2.0"
 description = "MCP Server for Red Bee Media OTT Platform - MCP Interface for Exposure APIs"
 authors = [
     {name = "Tamsi Besson", email = "tamsi.besson@gmail.com"}
