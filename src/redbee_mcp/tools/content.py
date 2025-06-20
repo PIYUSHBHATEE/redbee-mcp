@@ -810,7 +810,7 @@ CONTENT_TOOLS = [
                 "onlyPublished": {
                     "type": "boolean",
                     "description": "Only published content",
-                    "default": true
+                    "default": True
                 },
                 "allowedCountry": {
                     "type": "string",
