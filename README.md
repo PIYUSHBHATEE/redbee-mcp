@@ -9,7 +9,7 @@ Connect to Red Bee Media streaming services from MCP-compatible clients like Cla
 
 ## 🆕 New: HTTP/SSE Mode
 
-**Version 1.3.1** now supports multiple operating modes:
+**Version 1.4.0** now supports multiple operating modes:
 
 - **Stdio Mode** (original): For local AI agents like Claude Desktop
 - **HTTP Mode**: REST API with JSON-RPC for web integration  
