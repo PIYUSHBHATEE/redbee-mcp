@@ -98,8 +98,8 @@ async def search_content_v2(
         if types:
             params["types"] = types
         if tags:
-            for i, tag in enumerate(tags):
-                params[f"tags[{i}]"] = tag
+            # Use simple comma-separated format that matches working curl
+            params["tags"] = ",".join(tags)
         if durationLower is not None:
             params["durationLower"] = durationLower
         if durationUpper is not None:

@@ -4,7 +4,7 @@ Red Bee MCP Server
 MCP Server for Red Bee Media OTT Platform API
 """
 
-__version__ = "1.0.0"
+__version__ = "1.4.1"
 __author__ = "Tamsi Besson"
 
 # Import only the client by default to avoid heavy dependencies
