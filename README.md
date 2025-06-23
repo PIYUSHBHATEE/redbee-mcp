@@ -2,31 +2,50 @@
 
 **Model Context Protocol (MCP) Server for Red Bee Media OTT Platform**
 
-Connect to Red Bee Media streaming services directly from any MCP-compatible client like Claude Desktop, Cursor, or other AI tools. This server provides 33 tools for authentication, content search, user management, purchases, and system operations.
+Connect to Red Bee Media streaming services from MCP-compatible clients like Claude Desktop, or integrate via HTTP/SSE for web applications. This server provides 33 tools for authentication, content search, user management, purchases, and system operations.
 
 [![PyPI version](https://badge.fury.io/py/redbee-mcp.svg)](https://badge.fury.io/py/redbee-mcp)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+
+## 🆕 New: HTTP/SSE Mode
+
+**Version 1.3.1** now supports multiple operating modes:
+
+- **Stdio Mode** (original): For local AI agents like Claude Desktop
+- **HTTP Mode**: REST API with JSON-RPC for web integration  
+- **SSE Mode**: Server-Sent Events for real-time communication
+- **Both Modes**: Run stdio and HTTP simultaneously
 
 ## 🚀 Quick Start
 
 ### Option 1: Using uvx (Recommended)
 
-The easiest way to use Red Bee MCP is with `uvx` (requires no installation):
-
 ```bash
 # Test the server
 uvx redbee-mcp --help
+
+# Stdio mode (original)
+uvx redbee-mcp --stdio --customer YOUR_CUSTOMER --business-unit YOUR_BU
+
+# HTTP mode (new)
+uvx redbee-mcp --http --customer YOUR_CUSTOMER --business-unit YOUR_BU
+
+# Both modes simultaneously
+uvx redbee-mcp --both --customer YOUR_CUSTOMER --business-unit YOUR_BU
 ```
 
 ### Option 2: Using pip
 
 ```bash
 pip install redbee-mcp
+
+# Same usage as uvx, but with redbee-mcp command
+redbee-mcp --http --customer YOUR_CUSTOMER --business-unit YOUR_BU
 ```
 
 ## 📋 Configuration
 
-### For Claude Desktop
+### For Claude Desktop (Stdio Mode)
 
 Add to your Claude Desktop MCP configuration file:
 
@@ -38,7 +57,7 @@ Add to your Claude Desktop MCP configuration file:
   "mcpServers": {
     "redbee-mcp": {
       "command": "uvx",
-      "args": ["redbee-mcp"],
+      "args": ["redbee-mcp", "--stdio"],
       "env": {
         "REDBEE_CUSTOMER": "CUSTOMER_NAME",
         "REDBEE_BUSINESS_UNIT": "BUSINESS_UNIT_NAME"
@@ -48,39 +67,115 @@ Add to your Claude Desktop MCP configuration file:
 }
 ```
 
-### For Cursor
+### For Web Applications (HTTP Mode)
 
-Add to your Cursor MCP settings:
-
-```json
-{
-  "mcpServers": {
-    "redbee-mcp": {
-      "command": "uvx",
-      "args": ["redbee-mcp"],
-      "env": {
-        "REDBEE_CUSTOMER": "CUSTOMER_NAME",
-        "REDBEE_BUSINESS_UNIT": "BUSINESS_UNIT_NAME"
-      }
-    }
-  }
-}
+Start the HTTP server:
+```bash
+redbee-mcp --http --customer YOUR_CUSTOMER --business-unit YOUR_BU
 ```
 
-### Alternative: If you installed with pip
+The server will be available at `http://localhost:8000` with these endpoints:
 
-```json
-{
-  "mcpServers": {
-    "redbee-mcp": {
-      "command": "redbee-mcp",
-      "env": {
-        "REDBEE_CUSTOMER": "CUSTOMER_NAME",
-        "REDBEE_BUSINESS_UNIT": "BUSINESS_UNIT_NAME"
+| Method | URL | Description |
+|--------|-----|-------------|
+| GET | `/` | API information |
+| GET | `/health` | Server health check |
+| POST | `/` | JSON-RPC MCP requests |
+| GET | `/sse` | Server-Sent Events stream |
+
+## 🌐 HTTP/SSE API Usage
+
+### Example HTTP Requests
+
+#### Health Check
+```bash
+curl http://localhost:8000/health
+```
+
+#### List Available Tools
+```bash
+curl -X POST http://localhost:8000/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "tools/list",
+    "id": "1"
+  }'
+```
+
+#### Search Content
+```bash
+curl -X POST http://localhost:8000/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "tools/call",
+    "params": {
+      "name": "search_content_v2",
+      "arguments": {
+        "query": "french films",
+        "types": "MOVIE",
+        "pageSize": 5
       }
-    }
+    },
+    "id": "search-1"
+  }'
+```
+
+### Web Integration Example
+
+```javascript
+class RedBeeMCPClient {
+  constructor(baseUrl = 'http://localhost:8000') {
+    this.baseUrl = baseUrl;
+  }
+
+  async callTool(toolName, arguments) {
+    const response = await fetch(this.baseUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        method: 'tools/call',
+        params: { name: toolName, arguments },
+        id: Date.now().toString()
+      })
+    });
+    return response.json();
+  }
+
+  async searchContent(query, options = {}) {
+    return this.callTool('search_content_v2', {
+      query,
+      types: options.types || 'MOVIE,TV_SHOW',
+      pageSize: options.pageSize || 10,
+      ...options
+    });
   }
 }
+
+// Usage
+const mcp = new RedBeeMCPClient();
+const results = await mcp.searchContent('comedy movies');
+```
+
+### Server-Sent Events
+
+Connect to real-time event stream:
+
+```javascript
+const eventSource = new EventSource('http://localhost:8000/sse');
+
+eventSource.onmessage = function(event) {
+  const data = JSON.parse(event.data);
+  console.log('Event received:', data.type);
+  
+  if (data.type === 'welcome') {
+    console.log('Connected with client ID:', data.client_id);
+  } else if (data.type === 'tools') {
+    console.log('Available tools:', data.tools.length);
+  }
+};
 ```
 
 ## 🔧 Environment Variables
@@ -96,25 +191,6 @@ Add to your Cursor MCP settings:
 | `REDBEE_DEVICE_ID` | ❌ No | Device identifier | `web-browser-123` |
 | `REDBEE_CONFIG_ID` | ❌ No | Configuration ID | `sandwich` |
 | `REDBEE_TIMEOUT` | ❌ No | Request timeout in seconds | `30` |
-
-### Example with authentication
-
-```json
-{
-  "mcpServers": {
-    "redbee-mcp": {
-      "command": "uvx",
-      "args": ["redbee-mcp"],
-      "env": {
-        "REDBEE_CUSTOMER": "YOUR_CUSTOMER_NAME",
-        "REDBEE_BUSINESS_UNIT": "YOUR_BUSINESS_UNIT_NAME",
-        "REDBEE_USERNAME": "your_username",
-        "REDBEE_PASSWORD": "your_password"
-      }
-    }
-  }
-}
-```
 
 ## Available Tools
 
@@ -167,117 +243,217 @@ Add to your Cursor MCP settings:
 
 ## 🧪 Testing
 
-### Test the server locally
+### Test HTTP Server
+
+```bash
+# Start the server
+redbee-mcp --http --customer DEMO --business-unit DEMO
+
+# In another terminal, run the test script
+python example_usage.py
+```
+
+### Test Stdio Mode
 
 ```bash
 # Using uvx
-uvx redbee-mcp
+REDBEE_CUSTOMER=CUSTOMER_NAME REDBEE_BUSINESS_UNIT=BUSINESS_UNIT_NAME uvx redbee-mcp --stdio
 
 # Using pip installation
-redbee-mcp
-
-# With environment variables
-REDBEE_CUSTOMER=CUSTOMER_NAME REDBEE_BUSINESS_UNIT=BUSINESS_UNIT_NAME uvx redbee-mcp
+REDBEE_CUSTOMER=CUSTOMER_NAME REDBEE_BUSINESS_UNIT=BUSINESS_UNIT_NAME redbee-mcp --stdio
 ```
 
-### Test MCP protocol manually
+### Test MCP Protocol Manually
 
 ```bash
 # Initialize and list tools
 echo '{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2024-11-05", "capabilities": {"roots": {"listChanged": true}}, "clientInfo": {"name": "test", "version": "1.0.0"}}}
 {"jsonrpc": "2.0", "method": "notifications/initialized"}
-{"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}' | uvx redbee-mcp
+{"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}' | uvx redbee-mcp --stdio
+```
+
+## 🏗️ Architecture
+
+### Multi-Mode Design
+
+The server is architected with clean separation of concerns:
+
+- **McpHandler**: Core business logic shared between all modes
+- **Stdio Server**: Traditional MCP stdio interface for AI agents
+- **HTTP Server**: FastAPI-based REST/SSE interface for web apps
+- **CLI**: Multi-mode command line interface
+
+### File Structure
+
+```
+src/redbee_mcp/
+├── handler.py          # Core business logic
+├── server.py           # Stdio MCP server
+├── http_server.py      # HTTP/SSE server
+├── cli.py              # Multi-mode CLI
+├── models.py           # Data models
+└── tools/              # Tool modules
+    ├── auth.py
+    ├── content.py
+    ├── purchases.py
+    ├── system.py
+    └── user_management.py
 ```
 
 ## 📖 Usage Examples
 
-### Search for content
+### Search for French Movies (Stdio Mode)
 
 Ask your AI assistant:
 > "Search for French documentaries about nature"
 
-The assistant will use the `search_content` tool with appropriate parameters.
+### Search for Content (HTTP Mode)
 
-### Get streaming information
+```javascript
+const mcp = new RedBeeMCPClient();
+const results = await mcp.searchContent('french documentaries', {
+  types: 'MOVIE',
+  locale: ['fr'],
+  pageSize: 10
+});
+```
 
-> "Get the playback URL for asset ID 12345"
+### Get TV Show Information
 
-The assistant will use `get_playback_info` to retrieve streaming details.
+```python
+# First search for a TV show
+{
+  "query": "Game of Thrones",
+  "types": "TV_SHOW"
+}
 
-### Manage user profiles
+# Then get its seasons
+{
+  "assetId": "tv-show-asset-id"
+}
+```
 
-> "Show me all user profiles and create a new one called 'Kids'"
+### User Authentication
 
-The assistant will use `get_user_profiles` and `add_user_profile`.
+```python
+{
+  "username": "user@example.com",
+  "password": "password123",
+  "remember_me": true
+}
+```
 
-## 🔄 Development
+## 🚀 Production Deployment
 
-### Local development
+### Docker
+
+```dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+COPY . .
+RUN pip install -e .
+
+EXPOSE 8000
+
+# HTTP mode
+CMD ["redbee-mcp", "--http", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+### Environment Setup
 
 ```bash
-git clone https://github.com/tamsibesson/redbee-mcp.git
+export REDBEE_CUSTOMER="your-customer"
+export REDBEE_BUSINESS_UNIT="your-business-unit"
+export REDBEE_EXPOSURE_BASE_URL="https://exposure.api.redbee.live"
+```
+
+### Systemd Service
+
+```ini
+# /etc/systemd/system/redbee-mcp-http.service
+[Unit]
+Description=Red Bee MCP HTTP Server
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/opt/redbee-mcp
+Environment=REDBEE_CUSTOMER=your-customer
+Environment=REDBEE_BUSINESS_UNIT=your-business-unit
+ExecStart=/usr/local/bin/redbee-mcp --http --host 0.0.0.0 --port 8000
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+## 🔒 Security Considerations
+
+### CORS Configuration
+
+For production HTTP deployments, configure CORS properly in `http_server.py`:
+
+```python
+self.app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://yourdomain.com"],  # Specify allowed domains
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
+)
+```
+
+## 📝 API Reference
+
+The Red Bee MCP Server provides access to Red Bee Media Exposure API through:
+
+- **MCP Tools**: For AI agents and local applications
+- **HTTP/JSON-RPC**: For web applications and remote integration
+- **Server-Sent Events**: For real-time updates
+
+Each tool includes:
+- Input validation with required and optional parameters
+- Comprehensive error handling and messages
+- Type safety for all inputs and outputs
+- Detailed documentation and examples
+
+## 🛠️ Development
+
+### Requirements
+
+- Python 3.8+
+- MCP SDK
+- aiohttp for HTTP requests
+- pydantic for data validation
+- FastAPI and uvicorn for HTTP mode
+
+### Local Development
+
+```bash
+# Clone and install
+git clone https://github.com/tamsibesson/redbee-mcp
 cd redbee-mcp
 pip install -e .
-redbee-mcp
+
+# Run in development mode
+PYTHONPATH=src python -m redbee_mcp --http --customer TEST --business-unit TEST
 ```
-
-### Run tests
-
-```bash
-# Test MCP protocol
-python -c "
-import asyncio
-from src.redbee_mcp.server import get_available_tools
-print(f'Available tools: {len(asyncio.run(get_available_tools()))}')
-"
-```
-
-### Project structure
-
-```
-redbee-mcp/
-├── src/redbee_mcp/
-│   ├── __init__.py
-│   ├── __main__.py          # Entry point
-│   ├── server.py            # MCP server implementation
-│   ├── client.py            # Red Bee API client
-│   ├── models.py            # Data models
-│   └── tools/               # MCP tools
-│       ├── auth.py          # Authentication tools
-│       ├── content.py       # Content management tools
-│       ├── user_management.py # User tools
-│       ├── purchases.py     # Purchase tools
-│       └── system.py        # System tools
-├── pyproject.toml           # Package configuration
-└── README.md
-```
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) file for details.
+MIT License - see LICENSE file for details.
 
-## 🔗 Links
-
-- **PyPI Package**: https://pypi.org/project/redbee-mcp/
-- **Red Bee Media**: https://www.redbeemedia.com/
-- **Model Context Protocol**: https://modelcontextprotocol.io/
-- **Exposure API Documentation**: https://exposure.api.redbee.live/docs
-
-## 📞 Support
+## 🆘 Support
 
 For issues and questions:
-- Create an issue on GitHub
-- Check the Red Bee Media documentation
-- Review the MCP specification
+- GitHub Issues: https://github.com/tamsibesson/redbee-mcp/issues
+- Red Bee Media Documentation: https://www.redbeemedia.com/
 
----
+## 🔗 Related
 
-**Made with ❤️ for the Red Bee Media community** 
+- [Model Context Protocol](https://modelcontextprotocol.io/)
+- [Claude Desktop](https://claude.ai/desktop)
+- [Red Bee Media](https://www.redbeemedia.com/)
+- [FastAPI](https://fastapi.tiangolo.com/) 
