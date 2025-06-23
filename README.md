@@ -116,26 +116,30 @@ Add to your Cursor MCP settings:
 }
 ```
 
-## 🛠️ Available Tools (33 total)
+## Available Tools
 
-### 🔐 Authentication (4 tools)
+### 🔐 Authentication
 - `login_user` - Authenticate with username/password
 - `create_anonymous_session` - Create anonymous session
 - `validate_session_token` - Validate existing session
 - `logout_user` - Logout and invalidate session
 
-### 📺 Content Management (9 tools)
-- `search_content` - Search for movies, TV shows, documentaries
+### 📺 Content Management
+- `get_public_asset_details` - Get asset details via public endpoint (no auth)
+- `search_content_v2` - Search V2: free text query in asset fields (including descriptions)
 - `get_asset_details` - Get detailed asset information
-- `get_public_asset_details` - Get public asset details (no auth)
 - `get_playback_info` - Get streaming URLs and playback info
 - `search_assets_autocomplete` - Autocomplete search suggestions
-- `get_epg_for_channel` - Get Electronic Program Guide
+- `get_epg_for_channel` - Get Electronic Program Guide for a channel
 - `get_episodes_for_season` - Get all episodes in a season
-- `get_assets_by_tag` - Get assets by tag type
-- `list_assets` - List assets with filters
+- `get_assets_by_tag` - Get assets by tag type (e.g., origin)
+- `list_assets` - List assets with advanced filters
+- `search_multi_v3` - Multi-search for assets, tags, and participants
+- `get_asset_collection_entries` - Get collection entries for an asset collection
+- `get_asset_thumbnail` - Get thumbnail URL for an asset at a specific time
+- `get_seasons_for_series` - Get all seasons for a TV series
 
-### 👤 User Management (6 tools)
+### 👤 User Management
 - `signup_user` - Create new user account
 - `change_user_password` - Change user password
 - `get_user_profiles` - Get user profiles
@@ -144,7 +148,7 @@ Add to your Cursor MCP settings:
 - `get_user_preferences` - Get user preferences
 - `set_user_preferences` - Set user preferences
 
-### 💳 Purchases & Transactions (7 tools)
+### 💳 Purchases & Transactions
 - `get_account_purchases` - Get user purchases
 - `get_account_transactions` - Get transaction history
 - `get_offerings` - Get available product offerings
@@ -153,7 +157,7 @@ Add to your Cursor MCP settings:
 - `get_stored_payment_methods` - Get saved payment methods
 - `add_payment_method` - Add new payment method
 
-### ⚙️ System Operations (7 tools)
+### ⚙️ System Operations
 - `get_system_config` - Get platform configuration
 - `get_system_time` - Get server time
 - `get_user_location` - Get user location by IP
